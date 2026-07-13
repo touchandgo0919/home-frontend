@@ -517,6 +517,16 @@
 
     .nav-link .edit-tools {
       justify-content: flex-end;
+      gap: 4px;
+    }
+
+    .nav-link .tool-btn.icon {
+      width: 24px;
+      min-width: 24px;
+      height: 24px;
+      border-radius: 7px;
+      padding: 0;
+      font-size: 12px;
     }
 
     [data-editing="true"] .nav-link {
@@ -1639,9 +1649,26 @@
           <span class="nav-icon">${svgIcon(group.icon)}</span>
           <span class="nav-name">${escapeHtml(group.category)}</span>
           <span class="nav-count">${filteredLinks.length}</span>
+          <span class="edit-tools">
+            <button class="tool-btn icon" type="button" data-action="edit-category" aria-label="编辑分组">✎</button>
+            <button class="tool-btn icon danger" type="button" data-action="delete-category" aria-label="删除分组">×</button>
+          </span>
         `;
+        navLink.addEventListener("click", async (event) => {
+          const action = event.target.dataset.action;
+          if (!action) return;
+          event.preventDefault();
+          event.stopPropagation();
+          if (action === "edit-category") {
+            openCategoryForm(group);
+            return;
+          }
+          if (action === "delete-category") {
+            await deleteCategory(group.id);
+          }
+        });
         navLink.addEventListener("dragstart", (event) => {
-          if (!authState.editMode) return;
+          if (!authState.editMode || event.target.closest("button")) return;
           dragState.type = "category";
           dragState.id = String(group.id);
           event.dataTransfer.setData("application/x-category-id", String(group.id));
