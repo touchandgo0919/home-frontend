@@ -46,6 +46,7 @@ CREATE TABLE bookmarks (
   category_id INTEGER NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   url TEXT NOT NULL,
+  icon_url TEXT,
   sort_order INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -186,4 +187,3 @@ INSERT INTO bookmarks (tenant_id, category_id, title, url, sort_order) VALUES ((
 INSERT INTO bookmarks (tenant_id, category_id, title, url, sort_order) VALUES ((SELECT id FROM tenants WHERE slug='zhaotao'), (SELECT categories.id FROM categories JOIN tenants ON tenants.id = categories.tenant_id WHERE tenants.slug='zhaotao' AND categories.name='路由'), '公司路由', 'https://beagle0919.ddnsto.com/Main_Login.asp', 7);
 INSERT INTO bookmarks (tenant_id, category_id, title, url, sort_order) VALUES ((SELECT id FROM tenants WHERE slug='zhaotao'), (SELECT categories.id FROM categories JOIN tenants ON tenants.id = categories.tenant_id WHERE tenants.slug='zhaotao' AND categories.name='路由'), '内网路由', 'http://192.168.2.1/', 8);
 INSERT INTO bookmarks (tenant_id, category_id, title, url, sort_order) VALUES ((SELECT id FROM tenants WHERE slug='zhaotao'), (SELECT categories.id FROM categories JOIN tenants ON tenants.id = categories.tenant_id WHERE tenants.slug='zhaotao' AND categories.name='路由'), '北京宽带网', 'http://www.bbn.com.cn/', 9);
-

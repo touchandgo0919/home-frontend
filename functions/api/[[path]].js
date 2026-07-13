@@ -63,6 +63,14 @@ const requireUrl = (value) => {
   return url;
 };
 
+const faviconUrlForBookmark = (url) => {
+  try {
+    return `https://${new URL(url).hostname}/favicon.ico`;
+  } catch {
+    return "";
+  }
+};
+
 const toId = (value) => {
   const id = Number(value);
   if (!Number.isInteger(id) || id <= 0) {
@@ -209,7 +217,7 @@ async function getNavForTenant(db, tenant) {
     .all();
   const { results: bookmarks } = await db
     .prepare(
-      `SELECT id, tenant_id, category_id, title, url, sort_order
+      `SELECT id, tenant_id, category_id, title, url, icon_url, sort_order
        FROM bookmarks
        WHERE tenant_id = ?
        ORDER BY category_id, sort_order, id`
@@ -228,6 +236,7 @@ async function getNavForTenant(db, tenant) {
       category_id: bookmark.category_id,
       title: bookmark.title,
       url: bookmark.url,
+      icon_url: bookmark.icon_url || faviconUrlForBookmark(bookmark.url),
       sort_order: bookmark.sort_order,
     });
   }
@@ -351,6 +360,7 @@ async function createBookmark(db, tenantId, body) {
   const categoryId = toId(body.category_id);
   const title = requireText(body.title, "title");
   const url = requireUrl(body.url);
+  const iconUrl = faviconUrlForBookmark(url);
   const category = await db
     .prepare("SELECT id FROM categories WHERE id = ? AND tenant_id = ?")
     .bind(categoryId, tenantId)
@@ -361,8 +371,8 @@ async function createBookmark(db, tenantId, body) {
 
   const sortOrder = Number.isInteger(body.sort_order) ? body.sort_order : Date.now();
   const result = await db
-    .prepare("INSERT INTO bookmarks (tenant_id, category_id, title, url, sort_order) VALUES (?, ?, ?, ?, ?)")
-    .bind(tenantId, categoryId, title, url, sortOrder)
+    .prepare("INSERT INTO bookmarks (tenant_id, category_id, title, url, icon_url, sort_order) VALUES (?, ?, ?, ?, ?, ?)")
+    .bind(tenantId, categoryId, title, url, iconUrl, sortOrder)
     .run();
   return { id: result.meta.last_row_id };
 }
@@ -371,6 +381,7 @@ async function updateBookmark(db, tenantId, id, body) {
   const categoryId = toId(body.category_id);
   const title = requireText(body.title, "title");
   const url = requireUrl(body.url);
+  const iconUrl = faviconUrlForBookmark(url);
   const category = await db
     .prepare("SELECT id FROM categories WHERE id = ? AND tenant_id = ?")
     .bind(categoryId, tenantId)
@@ -382,10 +393,10 @@ async function updateBookmark(db, tenantId, id, body) {
   await db
     .prepare(
       `UPDATE bookmarks
-       SET tenant_id = ?, category_id = ?, title = ?, url = ?, updated_at = CURRENT_TIMESTAMP
+       SET tenant_id = ?, category_id = ?, title = ?, url = ?, icon_url = ?, updated_at = CURRENT_TIMESTAMP
        WHERE id = ? AND tenant_id = ?`
     )
-    .bind(tenantId, categoryId, title, url, id, tenantId)
+    .bind(tenantId, categoryId, title, url, iconUrl, id, tenantId)
     .run();
   return { id };
 }

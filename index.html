@@ -1452,12 +1452,15 @@
       return hash;
     }
 
-    function iconSources(domain) {
+    function iconSources(domain, iconUrl = "") {
       const sources = [];
+      if (iconUrl) {
+        sources.push(iconUrl);
+      }
       if (iconManifest[domain]) {
         sources.push(iconManifest[domain]);
       }
-      return sources;
+      return [...new Set(sources)];
     }
 
     function remoteIconSources(domain) {
@@ -1468,8 +1471,8 @@
       ];
     }
 
-    function renderFavicon(title, domain) {
-      const sources = iconSources(domain);
+    function renderFavicon(title, domain, iconUrl = "") {
+      const sources = iconSources(domain, iconUrl);
       if (!sources.length) {
         return `
           <span class="favicon" aria-hidden="true" data-domain="${escapeHtml(domain)}">
@@ -1731,7 +1734,7 @@
           card.title = `${link.title} - ${link.url}`;
           card.style.setProperty("--hue", hashHue(domain));
           card.innerHTML = `
-            ${renderFavicon(link.title, domain)}
+            ${renderFavicon(link.title, domain, link.icon_url)}
             <span class="card-copy">
               <span class="card-title">${escapeHtml(link.title)}</span>
               <span class="card-url">${escapeHtml(domain)}</span>
