@@ -99,6 +99,12 @@ const rawRequestedTenantSlug = (request) => {
 
 const requestedTenantSlug = (request) => rawRequestedTenantSlug(request) || DEFAULT_TENANT;
 
+const emptyNav = () => ({
+  authenticated: false,
+  tenant: null,
+  data: [],
+});
+
 async function getTenantBySlug(db, slug) {
   const tenant = await db
     .prepare("SELECT id, slug, name, admin_token, sort_order FROM tenants WHERE slug = ?")
@@ -158,6 +164,17 @@ async function requireActor(request, env, db) {
   throw Object.assign(new Error("Unauthorized"), { status: 401 });
 }
 
+async function getOptionalActor(request, env, db) {
+  try {
+    return await requireActor(request, env, db);
+  } catch (error) {
+    if (error.status === 401) {
+      return null;
+    }
+    throw error;
+  }
+}
+
 function requirePlatform(actor) {
   if (actor.role !== "platform") {
     throw Object.assign(new Error("Platform administrator token is required."), { status: 403 });
@@ -189,6 +206,7 @@ async function getNav(db, slug) {
     .all();
 
   return {
+    authenticated: true,
     tenant: { id: tenant.id, slug: tenant.slug, name: tenant.name },
     data: categories.map((category) => ({
       id: category.id,
@@ -390,7 +408,12 @@ export async function onRequest(context) {
     const db = requireDb(env);
 
     if (method === "GET" && path === "nav") {
-      const slug = requestedTenantSlug(request);
+      const actor = await getOptionalActor(request, env, db);
+      if (!actor) {
+        return json(emptyNav());
+      }
+      const requestedSlug = rawRequestedTenantSlug(request);
+      const slug = actor.role === "platform" ? requestedSlug || actor.tenant.slug : actor.tenant.slug;
       return json(await getNav(db, slug));
     }
 

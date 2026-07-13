@@ -548,6 +548,42 @@
       margin-bottom: 6px;
     }
 
+    .guest-empty {
+      display: none;
+      min-height: calc(100vh - 170px);
+      place-items: center;
+      padding: 26px;
+    }
+
+    .guest-panel {
+      width: min(460px, 100%);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      padding: 26px;
+      text-align: center;
+    }
+
+    .guest-panel h1 {
+      margin: 0 0 8px;
+      font-size: 22px;
+      letter-spacing: 0;
+    }
+
+    .guest-panel p {
+      margin: 0 0 18px;
+      color: var(--muted);
+    }
+
+    .guest-panel .login-form {
+      justify-content: center;
+    }
+
+    .guest-panel .login-form input {
+      width: min(260px, 100%);
+    }
+
     .footer {
       max-width: 1480px;
       margin: 0 auto;
@@ -710,6 +746,17 @@
         换一个关键词试试。
       </div>
     </main>
+  </div>
+
+  <div class="guest-empty" id="guestEmpty">
+    <div class="guest-panel">
+      <h1>登录后查看导航</h1>
+      <p>输入你的访问 token，即可加载所属租户的书签并进入管理。</p>
+      <form class="login-form" id="guestLoginForm">
+        <input id="guestLoginToken" type="password" autocomplete="current-password" placeholder="Token">
+        <button type="submit">登录</button>
+      </form>
+    </div>
   </div>
 
   <footer class="footer">Hosted on Cloudflare Pages</footer>
@@ -944,6 +991,8 @@
     const nav = document.getElementById("categoryNav");
     const searchInput = document.getElementById("searchInput");
     const emptyState = document.getElementById("emptyState");
+    const guestEmpty = document.getElementById("guestEmpty");
+    const shell = document.querySelector(".shell");
     const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
     const savedTheme = localStorage.getItem("nav-theme");
 
@@ -1118,27 +1167,36 @@
       document.getElementById("bookmarkCount").textContent = totalLinks;
     }
 
-    function currentTenantSlug() {
-      const params = new URLSearchParams(window.location.search);
-      return params.get("tenant") || "zhaotao";
-    }
-
     async function loadSiteData() {
       try {
-        const response = await fetch(`/api/nav?tenant=${encodeURIComponent(currentTenantSlug())}`, {
+        const response = await fetch("/api/nav", {
           headers: { accept: "application/json" },
+          credentials: "same-origin",
         });
         if (!response.ok) {
           throw new Error("API unavailable");
         }
         const payload = await response.json();
+        if (!payload.authenticated) {
+          siteData = [];
+          shell.style.display = "none";
+          guestEmpty.style.display = "grid";
+          updateSummary();
+          return;
+        }
         if (Array.isArray(payload.data)) {
           siteData = payload.data;
         }
       } catch {
-        siteData = fallbackSiteData;
+        siteData = [];
+        shell.style.display = "none";
+        guestEmpty.style.display = "grid";
+        updateSummary();
+        return;
       }
 
+      shell.style.display = "grid";
+      guestEmpty.style.display = "none";
       updateSummary();
       render(searchInput.value);
     }
@@ -1147,9 +1205,7 @@
     loadSiteData();
 
     searchInput.addEventListener("input", (event) => render(event.target.value));
-    document.getElementById("loginForm").addEventListener("submit", async (event) => {
-      event.preventDefault();
-      const token = document.getElementById("loginToken").value.trim();
+    async function loginWithToken(token) {
       if (!token) {
         return;
       }
@@ -1161,8 +1217,27 @@
       });
       if (response.ok) {
         window.location.href = "/admin/";
-      } else {
+        return;
+      }
+      throw new Error("登录失败");
+    }
+
+    document.getElementById("loginForm").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const token = document.getElementById("loginToken").value.trim();
+      try {
+        await loginWithToken(token);
+      } catch {
         document.getElementById("loginToken").select();
+      }
+    });
+    document.getElementById("guestLoginForm").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const token = document.getElementById("guestLoginToken").value.trim();
+      try {
+        await loginWithToken(token);
+      } catch {
+        document.getElementById("guestLoginToken").select();
       }
     });
     document.getElementById("themeToggle").addEventListener("click", () => {
