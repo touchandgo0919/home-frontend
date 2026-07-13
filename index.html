@@ -21,6 +21,7 @@
       --card-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
       --radius: 8px;
       --sidebar-width: 236px;
+      --content-top: 108px;
     }
 
     [data-theme="dark"] {
@@ -428,10 +429,10 @@
 
     .sidebar {
       position: fixed;
-      top: 98px;
+      top: var(--content-top);
       left: max(24px, calc((100vw - 1480px) / 2 + 24px));
       width: var(--sidebar-width);
-      max-height: calc(100vh - 124px);
+      max-height: calc(100vh - var(--content-top) - 26px);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       background: color-mix(in srgb, var(--surface) 92%, transparent);
