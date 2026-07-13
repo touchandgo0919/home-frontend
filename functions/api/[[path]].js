@@ -359,7 +359,7 @@ async function createBookmark(db, tenantId, body) {
     .prepare("INSERT INTO bookmarks (tenant_id, category_id, title, url, icon_url, sort_order) VALUES (?, ?, ?, ?, ?, ?)")
     .bind(tenantId, categoryId, title, url, iconUrl, sortOrder)
     .run();
-  return { id: result.meta.last_row_id };
+  return { id: result.meta.last_row_id, icon_url: iconUrl };
 }
 
 async function updateBookmark(db, tenantId, id, body) {
@@ -383,7 +383,7 @@ async function updateBookmark(db, tenantId, id, body) {
     )
     .bind(tenantId, categoryId, title, url, iconUrl, id, tenantId)
     .run();
-  return { id };
+  return { id, icon_url: iconUrl };
 }
 
 async function reorder(db, tenantId, table, ids, categoryId) {

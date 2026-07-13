@@ -1392,10 +1392,55 @@
     const modalClose = document.getElementById("modalClose");
     const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
     const savedTheme = localStorage.getItem("nav-theme");
+    const faviconCacheKey = "nav-favicon-cache";
     const modalState = { type: "", id: "", categoryId: "" };
+    let faviconCache = null;
 
     function visibleToken() {
       return localStorage.getItem("nav-visible-token") || "";
+    }
+
+    function readFaviconCache() {
+      if (faviconCache) return faviconCache;
+      try {
+        const cache = JSON.parse(localStorage.getItem(faviconCacheKey) || "{}");
+        faviconCache = cache && typeof cache === "object" ? cache : {};
+      } catch {
+        faviconCache = {};
+      }
+      return faviconCache;
+    }
+
+    function writeFaviconCache(cache) {
+      faviconCache = cache;
+      localStorage.setItem(faviconCacheKey, JSON.stringify(cache));
+    }
+
+    function cacheBookmarkIcon(url, iconUrl) {
+      if (!url || !iconUrl) return;
+      const domain = getDomain(url);
+      if (!domain) return;
+      const cache = readFaviconCache();
+      cache[domain] = iconUrl;
+      writeFaviconCache(cache);
+      const img = new Image();
+      img.src = iconUrl;
+    }
+
+    function syncFaviconCacheFromData(data) {
+      const cache = readFaviconCache();
+      let changed = false;
+      data.forEach((group) => {
+        group.links.forEach((link) => {
+          if (!link.icon_url) return;
+          const domain = getDomain(link.url);
+          if (domain && cache[domain] !== link.icon_url) {
+            cache[domain] = link.icon_url;
+            changed = true;
+          }
+        });
+      });
+      if (changed) writeFaviconCache(cache);
     }
 
     function syncSidebarOffset() {
@@ -1464,21 +1509,14 @@
 
     function iconSources(domain, iconUrl = "") {
       const sources = [];
-      if (iconUrl) {
-        sources.push(iconUrl);
+      const cachedIcon = readFaviconCache()[domain];
+      if (iconUrl || cachedIcon) {
+        sources.push(iconUrl || cachedIcon);
       }
       if (iconManifest[domain]) {
         sources.push(iconManifest[domain]);
       }
       return [...new Set(sources)];
-    }
-
-    function remoteIconSources(domain) {
-      return [
-        `https://${domain}/favicon.ico`,
-        `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`,
-        `https://icons.duckduckgo.com/ip3/${domain}.ico`,
-      ];
     }
 
     function renderFavicon(title, domain, iconUrl = "") {
@@ -1519,34 +1557,6 @@
           setLoaded();
         }
       });
-    }
-
-    function loadRemoteFavicons(root) {
-      const icons = [...root.querySelectorAll(".favicon[data-domain]:not([data-loading])")];
-      const load = () => {
-        icons.forEach((icon, index) => {
-          icon.dataset.loading = "true";
-          window.setTimeout(() => {
-            if (icon.querySelector("img")) return;
-            const domain = icon.dataset.domain;
-            const sources = remoteIconSources(domain);
-            const img = document.createElement("img");
-            img.alt = "";
-            img.loading = "lazy";
-            img.dataset.sources = encodeURIComponent(JSON.stringify(sources));
-            img.dataset.sourceIndex = "0";
-            img.src = sources[0];
-            icon.prepend(img);
-            bindIconFallbacks(icon);
-          }, index * 35);
-        });
-      };
-
-      if ("requestIdleCallback" in window) {
-        window.requestIdleCallback(load, { timeout: 1200 });
-      } else {
-        window.setTimeout(load, 250);
-      }
     }
 
     function normalize(text) {
@@ -1817,7 +1827,6 @@
 
       nav.appendChild(navFragment);
       content.appendChild(contentFragment);
-      loadRemoteFavicons(content);
       emptyState.style.display = matches ? "none" : "block";
       updateActiveNav();
       updateAuthUi();
@@ -1949,10 +1958,11 @@
         title: formData.get("title"),
         url: formData.get("url"),
       };
-      await api(modalState.id ? `bookmarks/${modalState.id}` : "bookmarks", {
+      const result = await api(modalState.id ? `bookmarks/${modalState.id}` : "bookmarks", {
         method: modalState.id ? "PUT" : "POST",
         body: JSON.stringify(body),
       });
+      cacheBookmarkIcon(body.url, result.icon_url);
       closeModal();
       await loadSiteData();
     }
@@ -2063,6 +2073,7 @@
 
       shell.style.display = "grid";
       guestEmpty.style.display = "none";
+      syncFaviconCacheFromData(siteData);
       syncSidebarOffset();
       updateSummary();
       updateAuthUi();
