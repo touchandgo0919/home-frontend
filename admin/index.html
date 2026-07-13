@@ -169,6 +169,13 @@
       padding: 0 10px;
     }
 
+    .input-action {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+    }
+
+    .span-1 { grid-column: span 1; }
     .span-2 { grid-column: span 2; }
     .span-3 { grid-column: span 3; }
     .span-4 { grid-column: span 4; }
@@ -187,7 +194,7 @@
       .tabs, .tab-panel { padding-inline: 12px; }
       .topbar { align-items: flex-start; flex-direction: column; padding-inline: 12px; }
       .toolbar { justify-content: flex-start; }
-      .span-2, .span-3, .span-4, .span-5, .span-6, .span-8 { grid-column: span 12; }
+      .span-1, .span-2, .span-3, .span-4, .span-5, .span-6, .span-8 { grid-column: span 12; }
     }
   </style>
 </head>
@@ -269,8 +276,21 @@
           <input type="hidden" name="id">
           <label class="field span-3"><span>标识</span><input name="slug" required placeholder="team-a"></label>
           <label class="field span-3"><span>名称</span><input name="name" required placeholder="Team A"></label>
-          <label class="field span-4"><span>租户令牌</span><input name="admin_token" placeholder="留空则编辑时不修改"></label>
-          <button class="btn primary span-2" type="submit">保存租户</button>
+          <label class="field span-3">
+            <span>初始 token</span>
+            <span class="input-action">
+              <input name="admin_token" placeholder="留空则编辑时不修改">
+              <button id="generateTenantTokenBtn" class="btn" type="button">随机</button>
+            </span>
+          </label>
+          <label class="field span-2">
+            <span>角色</span>
+            <select name="token_role">
+              <option value="admin">管理员</option>
+              <option value="editor">编辑者</option>
+            </select>
+          </label>
+          <button class="btn primary span-1" type="submit">保存租户</button>
           <button id="resetTenantBtn" class="btn ghost span-12" type="button">新建租户</button>
         </form>
         <div id="tenantList" class="list"></div>
@@ -325,6 +345,12 @@
         .replaceAll(">", "&gt;")
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
+    }
+
+    function randomToken() {
+      const bytes = new Uint8Array(32);
+      crypto.getRandomValues(bytes);
+      return [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
     }
 
     async function api(path, options = {}) {
@@ -456,6 +482,7 @@
     function resetTenantForm() {
       tenantForm.reset();
       tenantForm.elements.id.value = "";
+      tenantForm.elements.token_role.value = "admin";
     }
 
     function renderTenantAdmin() {
@@ -489,6 +516,7 @@
             tenantForm.elements.slug.value = tenant.slug;
             tenantForm.elements.name.value = tenant.name;
             tenantForm.elements.admin_token.value = "";
+            tenantForm.elements.token_role.value = "admin";
             return;
           }
           if (action === "delete") {
@@ -703,6 +731,7 @@
         slug: tenantForm.elements.slug.value,
         name: tenantForm.elements.name.value,
         admin_token: tenantForm.elements.admin_token.value,
+        token_role: tenantForm.elements.token_role.value,
       };
       const id = tenantForm.elements.id.value;
       if (!id && !body.admin_token.trim()) {
@@ -741,6 +770,9 @@
     document.getElementById("refreshBtn").addEventListener("click", () => load().catch((error) => setStatus(error.message, "bad")));
     document.querySelectorAll(".tab-button").forEach((button) => {
       button.addEventListener("click", () => setActiveTab(button.dataset.tab));
+    });
+    document.getElementById("generateTenantTokenBtn").addEventListener("click", () => {
+      tenantForm.elements.admin_token.value = randomToken();
     });
     document.getElementById("resetTenantBtn").addEventListener("click", resetTenantForm);
     document.getElementById("resetCategoryBtn").addEventListener("click", resetCategoryForm);

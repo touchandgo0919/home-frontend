@@ -71,6 +71,14 @@ const toId = (value) => {
   return id;
 };
 
+const requireRole = (value) => {
+  const role = String(value || "admin").trim();
+  if (!["admin", "editor"].includes(role)) {
+    throw Object.assign(new Error("role must be admin or editor."), { status: 400 });
+  }
+  return role;
+};
+
 const parseCookies = (request) =>
   Object.fromEntries(
     (request.headers.get("cookie") || "")
@@ -238,14 +246,15 @@ async function createTenant(db, body) {
   const slug = normalizeSlug(body.slug);
   const name = requireText(body.name || body.slug, "name");
   const adminToken = requireText(body.admin_token || body.adminToken, "admin_token");
+  const tokenRole = requireRole(body.token_role || body.tokenRole || body.role);
   const sortOrder = Number.isInteger(body.sort_order) ? body.sort_order : Date.now();
   const result = await db
     .prepare("INSERT INTO tenants (slug, name, admin_token, sort_order) VALUES (?, ?, ?, ?)")
     .bind(slug, name, adminToken, sortOrder)
     .run();
   await db
-    .prepare("INSERT OR IGNORE INTO tenant_tokens (tenant_id, name, token, role) VALUES (?, ?, ?, 'admin')")
-    .bind(result.meta.last_row_id, `${name} 管理员`, adminToken)
+    .prepare("INSERT OR IGNORE INTO tenant_tokens (tenant_id, name, token, role) VALUES (?, ?, ?, ?)")
+    .bind(result.meta.last_row_id, `${name} ${tokenRole === "admin" ? "管理员" : "编辑者"}`, adminToken, tokenRole)
     .run();
   return { id: result.meta.last_row_id, slug, name };
 }
@@ -254,6 +263,7 @@ async function updateTenant(db, id, body) {
   const slug = normalizeSlug(body.slug);
   const name = requireText(body.name || body.slug, "name");
   const adminToken = String(body.admin_token || body.adminToken || "").trim();
+  const tokenRole = requireRole(body.token_role || body.tokenRole || body.role);
 
   if (adminToken) {
     await db
@@ -261,8 +271,8 @@ async function updateTenant(db, id, body) {
       .bind(slug, name, adminToken, id)
       .run();
     await db
-      .prepare("INSERT OR IGNORE INTO tenant_tokens (tenant_id, name, token, role) VALUES (?, ?, ?, 'admin')")
-      .bind(id, `${name} 管理员`, adminToken)
+      .prepare("INSERT OR IGNORE INTO tenant_tokens (tenant_id, name, token, role) VALUES (?, ?, ?, ?)")
+      .bind(id, `${name} ${tokenRole === "admin" ? "管理员" : "编辑者"}`, adminToken, tokenRole)
       .run();
   } else {
     await db
@@ -285,10 +295,7 @@ async function listTokens(db, tenantId) {
 async function createToken(db, tenantId, body) {
   const name = requireText(body.name, "name");
   const token = requireText(body.token, "token");
-  const role = String(body.role || "editor").trim();
-  if (!["admin", "editor"].includes(role)) {
-    throw Object.assign(new Error("role must be admin or editor."), { status: 400 });
-  }
+  const role = requireRole(body.role || "editor");
   const result = await db
     .prepare("INSERT INTO tenant_tokens (tenant_id, name, token, role) VALUES (?, ?, ?, ?)")
     .bind(tenantId, name, token, role)
