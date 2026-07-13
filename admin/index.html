@@ -134,6 +134,7 @@
     .btn.danger { color: var(--danger); }
     .btn.ghost { background: transparent; }
     .btn.icon { width: 36px; padding: 0; }
+    .btn.copy-token { display: none; }
 
     .tab-panel {
       display: none;
@@ -274,6 +275,7 @@
       <button id="logoutBtn" class="btn ghost" type="button">重新登录</button>
       <span id="status" class="status">等待加载</span>
       <span class="token-chip" id="tokenDisplay"></span>
+      <button id="copyTokenBtn" class="btn copy-token" type="button">复制</button>
       <button class="theme-toggle" id="themeToggle" type="button" aria-label="切换深色浅色模式">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="4"></circle>
@@ -334,6 +336,7 @@
     const tokenInput = document.getElementById("tokenInput");
     const loginBtn = document.getElementById("loginBtn");
     const logoutBtn = document.getElementById("logoutBtn");
+    const copyTokenBtn = document.getElementById("copyTokenBtn");
     const tokenDisplay = document.getElementById("tokenDisplay");
     const statusEl = document.getElementById("status");
     const tenantForm = document.getElementById("tenantForm");
@@ -444,6 +447,30 @@
       statusEl.style.display = loggedIn ? "none" : "";
       tokenDisplay.style.display = loggedIn ? "inline-flex" : "none";
       tokenDisplay.textContent = loggedIn ? `欢迎，${visibleToken()}` : "";
+      copyTokenBtn.style.display = loggedIn ? "inline-flex" : "none";
+      copyTokenBtn.textContent = "复制";
+    }
+
+    async function copyVisibleToken() {
+      const value = visibleToken();
+      if (!value) return;
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(value);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = value;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "fixed";
+        textarea.style.left = "-9999px";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        textarea.remove();
+      }
+      copyTokenBtn.textContent = "已复制";
+      window.setTimeout(() => {
+        copyTokenBtn.textContent = "复制";
+      }, 1200);
     }
 
     function canUseSettings() {
@@ -542,6 +569,7 @@
     document.getElementById("generateTenantTokenBtn").addEventListener("click", () => {
       tenantForm.elements.admin_token.value = randomToken();
     });
+    copyTokenBtn.addEventListener("click", () => copyVisibleToken().catch((error) => setStatus(error.message || "复制失败", "bad")));
     document.getElementById("resetTenantBtn").addEventListener("click", resetTenantForm);
     document.getElementById("themeToggle").addEventListener("click", () => {
       const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
