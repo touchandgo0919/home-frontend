@@ -244,6 +244,15 @@ async function listTenants(db) {
   return results;
 }
 
+function ownTenant(actor) {
+  return [{
+    id: actor.tenant.id,
+    slug: actor.tenant.slug,
+    name: actor.tenant.name,
+    sort_order: actor.tenant.sort_order,
+  }];
+}
+
 async function createTenant(db, body) {
   const slug = normalizeSlug(body.slug);
   const name = requireText(body.name || body.slug, "name");
@@ -458,8 +467,8 @@ export async function onRequest(context) {
     const tenantId = actor.tenant.id;
 
     if (method === "GET" && path === "tenants") {
-      requirePlatform(actor);
-      return json({ data: await listTenants(db) });
+      requireTenantAdmin(actor);
+      return json({ data: actor.role === "platform" ? await listTenants(db) : ownTenant(actor) });
     }
 
     if (method === "POST" && path === "tenants") {
@@ -468,8 +477,12 @@ export async function onRequest(context) {
     }
 
     if (method === "PUT" && parts[0] === "tenants" && parts[1]) {
-      requirePlatform(actor);
-      return json(await updateTenant(db, toId(parts[1]), await readJson(request)));
+      requireTenantAdmin(actor);
+      const id = toId(parts[1]);
+      if (actor.role !== "platform" && id !== actor.tenant.id) {
+        throw Object.assign(new Error("Tenant administrators can only update their own tenant."), { status: 403 });
+      }
+      return json(await updateTenant(db, id, await readJson(request)));
     }
 
     if (method === "DELETE" && parts[0] === "tenants" && parts[1]) {

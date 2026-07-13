@@ -313,8 +313,8 @@
       </section>
       <section id="permissionEmpty" class="panel">
         <div class="empty">
-          <strong>请使用平台管理员 token 登录</strong>
-          当前账号不能管理租户。点击右上角“重新登录”后输入平台管理员 token。
+          <strong>请使用管理员 token 登录</strong>
+          当前账号不能管理租户。点击右上角“重新登录”后输入管理员 token。
         </div>
       </section>
     </div>
@@ -386,7 +386,7 @@
 
     async function load() {
       setStatus("加载中");
-      if (state.role === "platform") {
+      if (["platform", "admin"].includes(state.role)) {
         await loadTenants();
       }
       render();
@@ -455,16 +455,29 @@
       tenantForm.elements.token_role.value = "admin";
     }
 
+    function fillTenantForm(tenant) {
+      tenantForm.elements.id.value = tenant.id;
+      tenantForm.elements.slug.value = tenant.slug;
+      tenantForm.elements.name.value = tenant.name;
+      tenantForm.elements.admin_token.value = "";
+      tenantForm.elements.token_role.value = "admin";
+    }
+
     function renderTenantAdmin() {
       const panel = document.getElementById("tenantAdmin");
       const emptyPanel = document.getElementById("permissionEmpty");
-      panel.style.display = state.role === "platform" ? "" : "none";
-      emptyPanel.style.display = state.role && state.role !== "platform" ? "" : "none";
-      if (state.role !== "platform") return;
+      const canManageTenant = ["platform", "admin"].includes(state.role);
+      panel.style.display = canManageTenant ? "" : "none";
+      emptyPanel.style.display = state.role && !canManageTenant ? "" : "none";
+      if (!canManageTenant) return;
 
-      document.getElementById("tenantCount").textContent = `${state.tenants.length} 个租户`;
+      document.getElementById("tenantCount").textContent = state.role === "platform" ? `${state.tenants.length} 个租户` : "当前租户";
+      document.getElementById("resetTenantBtn").style.display = state.role === "platform" ? "" : "none";
       const root = document.getElementById("tenantList");
       root.innerHTML = "";
+      if (state.role !== "platform" && state.tenants[0] && !tenantForm.elements.id.value) {
+        fillTenantForm(state.tenants[0]);
+      }
       state.tenants.forEach((tenant) => {
         const row = document.createElement("div");
         row.className = `row ${state.tenant && tenant.slug === state.tenant.slug ? "active" : ""}`;
@@ -477,17 +490,13 @@
           </span>
           <span class="row-actions">
             <button class="btn icon" type="button" data-action="edit">✎</button>
-            <button class="btn icon danger" type="button" data-action="delete">×</button>
+            ${state.role === "platform" ? '<button class="btn icon danger" type="button" data-action="delete">×</button>' : ""}
           </span>
         `;
         row.addEventListener("click", async (event) => {
           const action = event.target.dataset.action;
           if (action === "edit") {
-            tenantForm.elements.id.value = tenant.id;
-            tenantForm.elements.slug.value = tenant.slug;
-            tenantForm.elements.name.value = tenant.name;
-            tenantForm.elements.admin_token.value = "";
-            tenantForm.elements.token_role.value = "admin";
+            fillTenantForm(tenant);
             return;
           }
           if (action === "delete") {
@@ -508,12 +517,12 @@
         admin_token: tenantForm.elements.admin_token.value,
         token_role: tenantForm.elements.token_role.value,
       };
-      const id = tenantForm.elements.id.value;
-      if (!id && !body.admin_token.trim()) {
+      const tenantId = tenantForm.elements.id.value;
+      if (!tenantId && !body.admin_token.trim()) {
         setStatus("新租户必须填写租户令牌", "bad");
         return;
       }
-      await api(id ? `tenants/${id}` : "tenants", { method: id ? "PUT" : "POST", body: JSON.stringify(body) });
+      await api(tenantId ? `tenants/${tenantId}` : "tenants", { method: tenantId ? "PUT" : "POST", body: JSON.stringify(body) });
       resetTenantForm();
       await load();
     });
