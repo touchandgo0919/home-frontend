@@ -432,7 +432,7 @@ export async function onRequest(context) {
       }
       const requestedSlug = rawRequestedTenantSlug(request);
       const slug = actor.role === "platform" ? requestedSlug || actor.tenant.slug : actor.tenant.slug;
-      return json(await getNav(db, slug));
+      return json({ ...(await getNav(db, slug)), role: actor.role });
     }
 
     if (path === "health") {

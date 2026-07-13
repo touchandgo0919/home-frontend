@@ -1474,15 +1474,18 @@
       if (iconManifest[domain]) {
         sources.push(iconManifest[domain]);
       }
-      sources.push(
-        `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`,
-        `https://icons.duckduckgo.com/ip3/${domain}.ico`
-      );
       return sources;
     }
 
     function renderFavicon(title, domain) {
       const sources = iconSources(domain);
+      if (!sources.length) {
+        return `
+          <span class="favicon" aria-hidden="true">
+            <span>${getInitial(title)}</span>
+          </span>
+        `;
+      }
       const encodedSources = encodeURIComponent(JSON.stringify(sources));
       return `
         <span class="favicon" aria-hidden="true">
@@ -1575,6 +1578,8 @@
 
       content.innerHTML = "";
       nav.innerHTML = "";
+      const navFragment = document.createDocumentFragment();
+      const contentFragment = document.createDocumentFragment();
       nav.ondragover = (event) => {
         if (authState.editMode && Array.from(event.dataTransfer.types).includes("application/x-category-id")) {
           event.preventDefault();
@@ -1637,7 +1642,7 @@
           }
         });
         navLink.addEventListener("dragend", clearPlaceholder);
-        nav.appendChild(navLink);
+        navFragment.appendChild(navLink);
 
         const section = document.createElement("section");
         section.className = "section";
@@ -1758,9 +1763,11 @@
           grid.appendChild(card);
         });
 
-        content.appendChild(section);
+        contentFragment.appendChild(section);
       });
 
+      nav.appendChild(navFragment);
+      content.appendChild(contentFragment);
       document.getElementById("matchCount").textContent = matches;
       emptyState.style.display = matches ? "none" : "block";
       updateActiveNav();
@@ -1989,14 +1996,8 @@
           siteData = payload.data;
         }
         authState.authenticated = true;
+        authState.role = payload.role || "";
         authState.tenant = payload.tenant || null;
-        try {
-          const session = await api("auth/session");
-          authState.role = session.role || "";
-          authState.tenant = session.tenant || authState.tenant;
-        } catch {
-          authState.role = "";
-        }
         if (!authState.selectedCategoryId && siteData[0]) {
           authState.selectedCategoryId = siteData[0].id;
         }
