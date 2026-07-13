@@ -254,7 +254,7 @@ async function getNav(db, slug) {
 
 async function listTenants(db) {
   const { results } = await db
-    .prepare("SELECT id, slug, name, sort_order, created_at, updated_at FROM tenants ORDER BY sort_order, id")
+    .prepare("SELECT id, slug, name, admin_token, sort_order, created_at, updated_at FROM tenants ORDER BY sort_order, id")
     .all();
   return results;
 }
