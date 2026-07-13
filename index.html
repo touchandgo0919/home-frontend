@@ -222,6 +222,34 @@
       transform: translateY(-1px);
     }
 
+    .login-form {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .login-form input {
+      width: 180px;
+      height: 38px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--text);
+      outline: 0;
+      padding: 0 10px;
+    }
+
+    .login-form button {
+      height: 38px;
+      border: 1px solid var(--accent);
+      border-radius: var(--radius);
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+      padding: 0 12px;
+      font-weight: 760;
+    }
+
     .theme-toggle svg {
       width: 17px;
       height: 17px;
@@ -585,6 +613,10 @@
         grid-template-columns: 40px;
       }
 
+      .login-form input {
+        width: 126px;
+      }
+
       .theme-toggle svg {
         display: none;
       }
@@ -628,6 +660,10 @@
       </label>
 
       <div class="actions">
+        <form class="login-form" id="loginForm">
+          <input id="loginToken" type="password" autocomplete="current-password" placeholder="Token">
+          <button type="submit">登录</button>
+        </form>
         <a class="admin-link" href="/admin/" aria-label="进入管理后台">管理</a>
         <button class="theme-toggle" id="themeToggle" type="button" aria-label="切换深色浅色模式">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1111,6 +1147,24 @@
     loadSiteData();
 
     searchInput.addEventListener("input", (event) => render(event.target.value));
+    document.getElementById("loginForm").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const token = document.getElementById("loginToken").value.trim();
+      if (!token) {
+        return;
+      }
+      const response = await fetch("/api/auth/token", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ token }),
+      });
+      if (response.ok) {
+        window.location.href = "/admin/";
+      } else {
+        document.getElementById("loginToken").select();
+      }
+    });
     document.getElementById("themeToggle").addEventListener("click", () => {
       const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
       applyTheme(nextTheme);

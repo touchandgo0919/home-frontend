@@ -76,6 +76,15 @@
 
     .tenant-admin.active { display: block; }
 
+    .token-admin {
+      display: none;
+      max-width: 1420px;
+      margin: 18px auto 0;
+      padding: 0 22px;
+    }
+
+    .token-admin.active { display: block; }
+
     .panel {
       border: 1px solid var(--border);
       border-radius: var(--radius);
@@ -166,8 +175,7 @@
       <a href="/">返回首页</a>
     </div>
     <div class="toolbar">
-      <input id="tenantInput" class="btn" type="text" placeholder="租户" value="zhaotao">
-      <input id="tokenInput" class="btn" type="password" placeholder="租户令牌 / ADMIN_TOKEN">
+      <input id="tokenInput" class="btn" type="password" placeholder="输入 token">
       <button id="loginBtn" class="btn primary" type="button">登录</button>
       <button id="refreshBtn" class="btn primary" type="button">刷新</button>
       <span id="status" class="status">等待加载</span>
@@ -189,6 +197,28 @@
         <button id="resetTenantBtn" class="btn ghost span-12" type="button">新建租户</button>
       </form>
       <div id="tenantList" class="list"></div>
+    </div>
+  </section>
+
+  <section id="tokenAdmin" class="token-admin">
+    <div class="panel">
+      <div class="panel-head">
+        <h2>访问令牌</h2>
+        <span id="tokenCount" class="count">租户管理员</span>
+      </div>
+      <form id="accessTokenForm" class="form">
+        <label class="field span-3"><span>名称</span><input name="name" required placeholder="同事 A"></label>
+        <label class="field span-5"><span>Token</span><input name="token" required placeholder="一段足够长的随机字符串"></label>
+        <label class="field span-2">
+          <span>角色</span>
+          <select name="role">
+            <option value="editor">编辑者</option>
+            <option value="admin">管理员</option>
+          </select>
+        </label>
+        <button class="btn primary span-2" type="submit">创建 token</button>
+      </form>
+      <div id="accessTokenList" class="list"></div>
     </div>
   </section>
 
@@ -239,16 +269,15 @@
   </main>
 
   <script>
-    const state = { data: [], tenants: [], selectedCategoryId: null, dragging: null, role: "", tenant: null };
-    const tenantInput = document.getElementById("tenantInput");
+    const state = { data: [], tenants: [], tokens: [], selectedCategoryId: null, dragging: null, role: "", tenant: null };
     const tokenInput = document.getElementById("tokenInput");
     const statusEl = document.getElementById("status");
     const tenantForm = document.getElementById("tenantForm");
+    const accessTokenForm = document.getElementById("accessTokenForm");
     const categoryForm = document.getElementById("categoryForm");
     const bookmarkForm = document.getElementById("bookmarkForm");
 
-    tenantInput.value = localStorage.getItem("nav-admin-tenant") || "zhaotao";
-    tokenInput.value = localStorage.getItem("nav-admin-token") || "";
+    localStorage.removeItem("nav-admin-token");
 
     function setStatus(text, kind = "") {
       statusEl.textContent = text;
@@ -257,10 +286,6 @@
 
     function token() {
       return tokenInput.value.trim();
-    }
-
-    function tenantSlug() {
-      return tenantInput.value.trim() || "zhaotao";
     }
 
     function escapeHtml(value) {
@@ -278,9 +303,9 @@
         headers: {
           "content-type": "application/json",
           ...(token() ? { authorization: `Bearer ${token()}` } : {}),
-          "x-tenant-slug": tenantSlug(),
           ...(options.headers || {}),
         },
+        credentials: "same-origin",
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) {
@@ -291,7 +316,7 @@
 
     async function load() {
       setStatus("加载中");
-      const body = await api(`nav?tenant=${encodeURIComponent(tenantSlug())}`);
+      const body = await api("nav");
       state.tenant = body.tenant || null;
       state.data = body.data || [];
       if (!state.selectedCategoryId && state.data[0]) {
@@ -300,21 +325,32 @@
       if (state.role === "platform") {
         await loadTenants();
       }
+      if (["platform", "admin"].includes(state.role)) {
+        await loadTokens();
+      }
       render();
       setStatus("已同步", "ok");
     }
 
     async function login() {
       setStatus("登录中");
-      const body = await api("auth/tenant", {
+      const body = await api("auth/token", {
         method: "POST",
-        body: JSON.stringify({ slug: tenantSlug(), token: token() }),
+        body: JSON.stringify({ token: token() }),
         headers: {},
       });
       state.role = body.role;
       state.tenant = body.tenant;
-      localStorage.setItem("nav-admin-tenant", tenantSlug());
-      localStorage.setItem("nav-admin-token", token());
+      state.selectedCategoryId = null;
+      await load();
+      setStatus(body.role === "platform" ? "平台管理员已登录" : "租户已登录", "ok");
+    }
+
+    async function restoreSession() {
+      setStatus("恢复会话");
+      const body = await api("auth/session");
+      state.role = body.role;
+      state.tenant = body.tenant;
       state.selectedCategoryId = null;
       await load();
       setStatus(body.role === "platform" ? "平台管理员已登录" : "租户已登录", "ok");
@@ -323,6 +359,11 @@
     async function loadTenants() {
       const body = await api("tenants");
       state.tenants = body.data || [];
+    }
+
+    async function loadTokens() {
+      const body = await api("tokens");
+      state.tokens = body.data || [];
     }
 
     function selectedCategory() {
@@ -345,6 +386,7 @@
 
     function render() {
       renderTenantAdmin();
+      renderTokenAdmin();
       renderCategoryList();
       renderBookmarkFormOptions();
       renderBookmarkList();
@@ -365,7 +407,7 @@
       root.innerHTML = "";
       state.tenants.forEach((tenant) => {
         const row = document.createElement("div");
-        row.className = `row ${tenant.slug === tenantSlug() ? "active" : ""}`;
+        row.className = `row ${state.tenant && tenant.slug === state.tenant.slug ? "active" : ""}`;
         row.dataset.id = tenant.id;
         row.innerHTML = `
           <span class="handle">#</span>
@@ -394,9 +436,39 @@
             return;
           }
           if (action === "open") {
-            tenantInput.value = tenant.slug;
-            localStorage.setItem("nav-admin-tenant", tenant.slug);
             state.selectedCategoryId = null;
+            await load();
+          }
+        });
+        root.appendChild(row);
+      });
+    }
+
+    function renderTokenAdmin() {
+      const panel = document.getElementById("tokenAdmin");
+      panel.classList.toggle("active", ["platform", "admin"].includes(state.role));
+      if (!["platform", "admin"].includes(state.role)) return;
+
+      document.getElementById("tokenCount").textContent = `${state.tokens.length} 个 token`;
+      const root = document.getElementById("accessTokenList");
+      root.innerHTML = "";
+      state.tokens.forEach((item) => {
+        const row = document.createElement("div");
+        row.className = "row";
+        row.dataset.id = item.id;
+        row.innerHTML = `
+          <span class="handle">钥</span>
+          <span>
+            <span class="title">${escapeHtml(item.name)}</span>
+            <span class="sub">${escapeHtml(item.role === "admin" ? "管理员" : "编辑者")}</span>
+          </span>
+          <span class="row-actions">
+            <button class="btn icon danger" type="button" data-action="delete">×</button>
+          </span>
+        `;
+        row.addEventListener("click", async (event) => {
+          if (event.target.dataset.action === "delete") {
+            await api(`tokens/${item.id}`, { method: "DELETE" });
             await load();
           }
         });
@@ -581,6 +653,18 @@
       await load();
     });
 
+    accessTokenForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const body = {
+        name: accessTokenForm.elements.name.value,
+        token: accessTokenForm.elements.token.value,
+        role: accessTokenForm.elements.role.value,
+      };
+      await api("tokens", { method: "POST", body: JSON.stringify(body) });
+      accessTokenForm.reset();
+      await load();
+    });
+
     async function deleteCategory(id) {
       await api(`categories/${id}`, { method: "DELETE" });
       state.selectedCategoryId = null;
@@ -598,11 +682,7 @@
     document.getElementById("resetCategoryBtn").addEventListener("click", resetCategoryForm);
     document.getElementById("resetBookmarkBtn").addEventListener("click", resetBookmarkForm);
 
-    if (token()) {
-      login().catch((error) => setStatus(error.message, "bad"));
-    } else {
-      setStatus("请输入租户和令牌");
-    }
+    restoreSession().catch(() => setStatus("请输入 token"));
   </script>
 </body>
 </html>

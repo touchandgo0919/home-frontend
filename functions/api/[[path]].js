@@ -1,11 +1,14 @@
 const DEFAULT_TENANT = "zhaotao";
+const COOKIE_NAME = "nav_token";
+const COOKIE_MAX_AGE = 99 * 365 * 24 * 60 * 60;
 
-const json = (body, status = 200) =>
+const json = (body, status = 200, headers = {}) =>
   new Response(JSON.stringify(body), {
     status,
     headers: {
       "content-type": "application/json; charset=utf-8",
       "cache-control": "no-store",
+      ...headers,
     },
   });
 
@@ -68,12 +71,33 @@ const toId = (value) => {
   return id;
 };
 
-const bearerToken = (request) => (request.headers.get("authorization") || "").replace(/^Bearer\s+/i, "").trim();
+const parseCookies = (request) =>
+  Object.fromEntries(
+    (request.headers.get("cookie") || "")
+      .split(";")
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .map((part) => {
+        const index = part.indexOf("=");
+        return index > -1 ? [part.slice(0, index), decodeURIComponent(part.slice(index + 1))] : [part, ""];
+      })
+  );
 
-const requestedTenantSlug = (request) => {
-  const url = new URL(request.url);
-  return normalizeSlug(url.searchParams.get("tenant") || request.headers.get("x-tenant-slug") || DEFAULT_TENANT);
+const bearerToken = (request) => (request.headers.get("authorization") || "").replace(/^Bearer\s+/i, "").trim();
+const authToken = (request) => bearerToken(request) || parseCookies(request)[COOKIE_NAME] || "";
+
+const authCookie = (token) => {
+  const expires = new Date(Date.now() + COOKIE_MAX_AGE * 1000).toUTCString();
+  return `${COOKIE_NAME}=${encodeURIComponent(token)}; Path=/; Max-Age=${COOKIE_MAX_AGE}; Expires=${expires}; HttpOnly; SameSite=Lax`;
 };
+
+const rawRequestedTenantSlug = (request) => {
+  const url = new URL(request.url);
+  const value = url.searchParams.get("tenant") || request.headers.get("x-tenant-slug");
+  return value ? normalizeSlug(value) : null;
+};
+
+const requestedTenantSlug = (request) => rawRequestedTenantSlug(request) || DEFAULT_TENANT;
 
 async function getTenantBySlug(db, slug) {
   const tenant = await db
@@ -87,17 +111,48 @@ async function getTenantBySlug(db, slug) {
 }
 
 async function requireActor(request, env, db) {
-  const token = bearerToken(request);
+  const token = authToken(request);
   const platformToken = env.ADMIN_TOKEN || "";
-  const tenantSlug = requestedTenantSlug(request);
+  const requestedSlug = rawRequestedTenantSlug(request);
+  const tenantSlug = requestedSlug || DEFAULT_TENANT;
   const tenant = await getTenantBySlug(db, tenantSlug);
 
   if (platformToken && token === platformToken) {
     return { role: "platform", tenant };
   }
 
-  if (token && token === tenant.admin_token) {
-    return { role: "tenant", tenant };
+  if (token) {
+    const tokenRow = await db
+      .prepare(
+        `SELECT tenant_tokens.id AS token_id, tenant_tokens.name AS token_name, tenant_tokens.role,
+                tenants.id, tenants.slug, tenants.name, tenants.admin_token, tenants.sort_order
+         FROM tenant_tokens
+         JOIN tenants ON tenants.id = tenant_tokens.tenant_id
+         WHERE tenant_tokens.token = ?`
+      )
+      .bind(token)
+      .first();
+
+    if (tokenRow) {
+      if (requestedSlug && requestedSlug !== tokenRow.slug) {
+        throw Object.assign(new Error("Token does not belong to requested tenant."), { status: 403 });
+      }
+      return {
+        role: tokenRow.role,
+        token: { id: tokenRow.token_id, name: tokenRow.token_name },
+        tenant: {
+          id: tokenRow.id,
+          slug: tokenRow.slug,
+          name: tokenRow.name,
+          admin_token: tokenRow.admin_token,
+          sort_order: tokenRow.sort_order,
+        },
+      };
+    }
+
+    if (token === tenant.admin_token) {
+      return { role: "admin", tenant };
+    }
   }
 
   throw Object.assign(new Error("Unauthorized"), { status: 401 });
@@ -106,6 +161,12 @@ async function requireActor(request, env, db) {
 function requirePlatform(actor) {
   if (actor.role !== "platform") {
     throw Object.assign(new Error("Platform administrator token is required."), { status: 403 });
+  }
+}
+
+function requireTenantAdmin(actor) {
+  if (!["platform", "admin"].includes(actor.role)) {
+    throw Object.assign(new Error("Tenant administrator token is required."), { status: 403 });
   }
 }
 
@@ -164,6 +225,10 @@ async function createTenant(db, body) {
     .prepare("INSERT INTO tenants (slug, name, admin_token, sort_order) VALUES (?, ?, ?, ?)")
     .bind(slug, name, adminToken, sortOrder)
     .run();
+  await db
+    .prepare("INSERT OR IGNORE INTO tenant_tokens (tenant_id, name, token, role) VALUES (?, ?, ?, 'admin')")
+    .bind(result.meta.last_row_id, `${name} 管理员`, adminToken)
+    .run();
   return { id: result.meta.last_row_id, slug, name };
 }
 
@@ -177,6 +242,10 @@ async function updateTenant(db, id, body) {
       .prepare("UPDATE tenants SET slug = ?, name = ?, admin_token = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
       .bind(slug, name, adminToken, id)
       .run();
+    await db
+      .prepare("INSERT OR IGNORE INTO tenant_tokens (tenant_id, name, token, role) VALUES (?, ?, ?, 'admin')")
+      .bind(id, `${name} 管理员`, adminToken)
+      .run();
   } else {
     await db
       .prepare("UPDATE tenants SET slug = ?, name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
@@ -185,6 +254,28 @@ async function updateTenant(db, id, body) {
   }
 
   return { id, slug, name };
+}
+
+async function listTokens(db, tenantId) {
+  const { results } = await db
+    .prepare("SELECT id, name, role, created_at, updated_at FROM tenant_tokens WHERE tenant_id = ? ORDER BY id")
+    .bind(tenantId)
+    .all();
+  return results;
+}
+
+async function createToken(db, tenantId, body) {
+  const name = requireText(body.name, "name");
+  const token = requireText(body.token, "token");
+  const role = String(body.role || "editor").trim();
+  if (!["admin", "editor"].includes(role)) {
+    throw Object.assign(new Error("role must be admin or editor."), { status: 400 });
+  }
+  const result = await db
+    .prepare("INSERT INTO tenant_tokens (tenant_id, name, token, role) VALUES (?, ?, ?, ?)")
+    .bind(tenantId, name, token, role)
+    .run();
+  return { id: result.meta.last_row_id, name, role };
 }
 
 async function createCategory(db, tenantId, body) {
@@ -307,15 +398,23 @@ export async function onRequest(context) {
       return json({ ok: true });
     }
 
-    if (method === "POST" && path === "auth/tenant") {
+    if (method === "GET" && path === "auth/session") {
+      const actor = await requireActor(request, env, db);
+      return json({
+        role: actor.role,
+        tenant: { id: actor.tenant.id, slug: actor.tenant.slug, name: actor.tenant.name },
+      });
+    }
+
+    if (method === "POST" && path === "auth/token") {
       const body = await readJson(request);
-      const fakeUrl = new URL(request.url);
-      fakeUrl.searchParams.set("tenant", normalizeSlug(body.slug));
-      const authRequest = new Request(fakeUrl, { headers: { authorization: `Bearer ${requireText(body.token, "token")}` } });
+      const authRequest = new Request(request.url, { headers: { authorization: `Bearer ${requireText(body.token, "token")}` } });
       const actor = await requireActor(authRequest, env, db);
       return json({
         role: actor.role,
         tenant: { id: actor.tenant.id, slug: actor.tenant.slug, name: actor.tenant.name },
+      }, 200, {
+        "set-cookie": authCookie(requireText(body.token, "token")),
       });
     }
 
@@ -340,6 +439,22 @@ export async function onRequest(context) {
     if (method === "DELETE" && parts[0] === "tenants" && parts[1]) {
       requirePlatform(actor);
       await db.prepare("DELETE FROM tenants WHERE id = ? AND slug <> ?").bind(toId(parts[1]), DEFAULT_TENANT).run();
+      return json({ ok: true });
+    }
+
+    if (method === "GET" && path === "tokens") {
+      requireTenantAdmin(actor);
+      return json({ data: await listTokens(db, tenantId) });
+    }
+
+    if (method === "POST" && path === "tokens") {
+      requireTenantAdmin(actor);
+      return json(await createToken(db, tenantId, await readJson(request)), 201);
+    }
+
+    if (method === "DELETE" && parts[0] === "tokens" && parts[1]) {
+      requireTenantAdmin(actor);
+      await db.prepare("DELETE FROM tenant_tokens WHERE id = ? AND tenant_id = ?").bind(toId(parts[1]), tenantId).run();
       return json({ ok: true });
     }
 
