@@ -14,6 +14,8 @@
       --muted: #667085;
       --border: #dce4f0;
       --accent: #2563eb;
+      --input-bg: #ffffff;
+      --active-row: #eef5ff;
       --danger: #d92d20;
       --ok: #07866f;
       --radius: 8px;
@@ -29,6 +31,8 @@
       --muted: #aab6c5;
       --border: #263446;
       --accent: #75a1ff;
+      --input-bg: #0f1724;
+      --active-row: rgba(117, 161, 255, 0.14);
       --danger: #ff6b5f;
       --ok: #42d1c8;
     }
@@ -179,7 +183,7 @@
 
     .row[draggable="true"] { cursor: grab; }
     .row.dragging { opacity: .45; }
-    .row.active { background: #eef5ff; }
+    .row.active { background: var(--active-row); }
     .handle { color: var(--muted); text-align: center; font-size: 18px; line-height: 1; }
     .title { overflow: hidden; font-weight: 760; text-overflow: ellipsis; white-space: nowrap; }
     .sub { overflow: hidden; color: var(--muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
@@ -210,10 +214,15 @@
       height: 38px;
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      background: #fff;
+      background: var(--input-bg);
       color: var(--text);
       outline: 0;
       padding: 0 10px;
+    }
+
+    .field input::placeholder {
+      color: var(--muted);
+      opacity: .72;
     }
 
     .input-action {
