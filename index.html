@@ -193,7 +193,7 @@
       background: var(--surface);
       color: var(--muted);
       cursor: pointer;
-      height: 38px;
+      height: 40px;
       padding: 0 10px;
       transition: border-color 160ms ease, transform 160ms ease, background 160ms ease;
     }
@@ -207,7 +207,8 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-height: 38px;
+      height: 40px;
+      min-width: 72px;
       border: 1px solid var(--border);
       border-radius: var(--radius);
       background: var(--surface);
@@ -231,7 +232,7 @@
 
     .login-form input {
       width: 180px;
-      height: 38px;
+      height: 40px;
       border: 1px solid var(--border);
       border-radius: var(--radius);
       background: var(--surface);
@@ -241,7 +242,7 @@
     }
 
     .login-form button {
-      height: 38px;
+      height: 40px;
       border: 1px solid var(--accent);
       border-radius: var(--radius);
       background: var(--accent);
@@ -255,18 +256,23 @@
       display: none;
       max-width: 280px;
       overflow: hidden;
+      align-items: center;
+      height: 40px;
       border: 1px solid var(--border);
       border-radius: var(--radius);
       background: var(--surface);
       color: var(--muted);
-      padding: 8px 10px;
+      padding: 0 12px;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
     .inline-action {
       display: none;
-      min-height: 38px;
+      align-items: center;
+      justify-content: center;
+      height: 40px;
+      min-width: 72px;
       border: 1px solid var(--border);
       border-radius: var(--radius);
       background: var(--surface);
@@ -284,6 +290,35 @@
 
     .inline-action.danger {
       color: #d92d20;
+    }
+
+    .edit-hint {
+      display: none;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 760;
+      margin-bottom: 16px;
+      padding: 10px 12px;
+    }
+
+    [data-editing="true"] .edit-hint {
+      display: block;
+    }
+
+    [data-editing="true"] .card,
+    [data-editing="true"] .nav-link {
+      cursor: grab;
+    }
+
+    [data-editing="true"] .card {
+      outline: 1px dashed color-mix(in srgb, var(--accent) 44%, transparent);
+      outline-offset: -5px;
+    }
+
+    .drag-over {
+      box-shadow: inset 0 0 0 2px var(--accent);
     }
 
     .theme-toggle svg {
@@ -907,45 +942,7 @@
         </div>
       </div>
 
-      <section class="edit-panel" id="editPanel">
-        <div class="edit-box">
-          <div class="edit-head">
-            <span>分组</span>
-            <span id="editCategoryCount">0</span>
-          </div>
-          <form class="edit-form" id="categoryEditor">
-            <input type="hidden" name="id">
-            <input class="span-5" name="name" required placeholder="分组名称">
-            <select class="span-4" name="icon">
-              <option value="briefcase">工作</option>
-              <option value="book">学习</option>
-              <option value="cart">购物</option>
-              <option value="smile">娱乐</option>
-              <option value="money">理财</option>
-              <option value="router">路由</option>
-            </select>
-            <button class="primary span-3" type="submit">保存</button>
-            <button class="span-12" id="newCategoryBtn" type="button">新建分组</button>
-          </form>
-          <div class="edit-list" id="categoryEditorList"></div>
-        </div>
-
-        <div class="edit-box">
-          <div class="edit-head">
-            <span id="bookmarkEditorTitle">书签</span>
-            <span id="editBookmarkCount">0</span>
-          </div>
-          <form class="edit-form" id="bookmarkEditor">
-            <input type="hidden" name="id">
-            <select class="span-3" name="category_id" required></select>
-            <input class="span-3" name="title" required placeholder="标题">
-            <input class="span-4" name="url" required placeholder="https://">
-            <button class="primary span-2" type="submit">保存</button>
-            <button class="span-12" id="newBookmarkBtn" type="button">新建书签</button>
-          </form>
-          <div class="edit-list" id="bookmarkEditorList"></div>
-        </div>
-      </section>
+      <div class="edit-hint">编辑模式已开启：拖动左侧分组可调整顺序，拖动书签图块可在同组或跨组移动。</div>
 
       <div id="content"></div>
       <div class="empty" id="emptyState">
@@ -1206,9 +1203,6 @@
     const editToggle = document.getElementById("editToggle");
     const adminLink = document.getElementById("adminLink");
     const logoutBtn = document.getElementById("logoutBtn");
-    const editPanel = document.getElementById("editPanel");
-    const categoryEditor = document.getElementById("categoryEditor");
-    const bookmarkEditor = document.getElementById("bookmarkEditor");
     const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
     const savedTheme = localStorage.getItem("nav-theme");
 
@@ -1246,7 +1240,7 @@
       editToggle.textContent = authState.editMode ? "收起编辑" : "编辑";
       adminLink.style.display = authState.authenticated && canManageSystem() ? "inline-flex" : "none";
       logoutBtn.style.display = authState.authenticated ? "inline-flex" : "none";
-      editPanel.classList.toggle("active", authState.authenticated && authState.editMode);
+      document.body.dataset.editing = authState.authenticated && authState.editMode ? "true" : "false";
     }
 
     function svgIcon(name) {
@@ -1345,7 +1339,7 @@
           return normalize(haystack).includes(keyword);
         });
 
-        if (!filteredLinks.length) {
+        if (!filteredLinks.length && !authState.editMode) {
           return;
         }
 
@@ -1355,11 +1349,31 @@
         const navLink = document.createElement("a");
         navLink.className = "nav-link";
         navLink.href = `#${sectionId}`;
+        navLink.dataset.categoryId = group.id;
+        navLink.draggable = authState.editMode;
         navLink.innerHTML = `
           <span class="nav-icon">${svgIcon(group.icon)}</span>
           <span class="nav-name">${group.category}</span>
           <span class="nav-count">${filteredLinks.length}</span>
         `;
+        navLink.addEventListener("dragstart", (event) => {
+          if (!authState.editMode) return;
+          event.dataTransfer.setData("application/x-category-id", String(group.id));
+          event.dataTransfer.effectAllowed = "move";
+        });
+        navLink.addEventListener("dragover", (event) => {
+          if (authState.editMode && Array.from(event.dataTransfer.types).includes("application/x-category-id")) {
+            event.preventDefault();
+          }
+        });
+        navLink.addEventListener("drop", async (event) => {
+          const sourceCategoryId = event.dataTransfer.getData("application/x-category-id");
+          if (sourceCategoryId) {
+            event.preventDefault();
+            await moveCategory(sourceCategoryId, group.id);
+          }
+        });
+        enableDropState(navLink);
         nav.appendChild(navLink);
 
         const section = document.createElement("section");
@@ -1377,6 +1391,20 @@
         `;
 
         const grid = section.querySelector(".grid");
+        grid.dataset.categoryId = group.id;
+        grid.addEventListener("dragover", (event) => {
+          if (authState.editMode && Array.from(event.dataTransfer.types).includes("application/x-bookmark-id")) {
+            event.preventDefault();
+          }
+        });
+        grid.addEventListener("drop", async (event) => {
+          const bookmarkId = event.dataTransfer.getData("application/x-bookmark-id");
+          if (bookmarkId) {
+            event.preventDefault();
+            await moveBookmark(bookmarkId, group.id);
+          }
+        });
+        enableDropState(grid);
         filteredLinks.forEach((link) => {
           const card = document.createElement("a");
           const domain = getDomain(link.url);
@@ -1384,6 +1412,9 @@
           card.href = link.url;
           card.target = "_blank";
           card.rel = "noopener noreferrer";
+          card.draggable = authState.editMode;
+          card.dataset.bookmarkId = link.id;
+          card.dataset.categoryId = group.id;
           card.title = `${link.title} - ${link.url}`;
           card.style.setProperty("--hue", hashHue(domain));
           card.innerHTML = `
@@ -1393,6 +1424,29 @@
               <span class="card-url">${domain}</span>
             </span>
           `;
+          card.addEventListener("click", (event) => {
+            if (authState.editMode) {
+              event.preventDefault();
+            }
+          });
+          card.addEventListener("dragstart", (event) => {
+            if (!authState.editMode) return;
+            event.dataTransfer.setData("application/x-bookmark-id", String(link.id));
+            event.dataTransfer.effectAllowed = "move";
+          });
+          card.addEventListener("dragover", (event) => {
+            if (authState.editMode && Array.from(event.dataTransfer.types).includes("application/x-bookmark-id")) {
+              event.preventDefault();
+            }
+          });
+          card.addEventListener("drop", async (event) => {
+            const bookmarkId = event.dataTransfer.getData("application/x-bookmark-id");
+            if (bookmarkId) {
+              event.preventDefault();
+              await moveBookmark(bookmarkId, group.id, link.id);
+            }
+          });
+          enableDropState(card);
           bindIconFallbacks(card);
           grid.appendChild(card);
         });
@@ -1403,7 +1457,7 @@
       document.getElementById("matchCount").textContent = matches;
       emptyState.style.display = matches ? "none" : "block";
       updateActiveNav();
-      renderEditor();
+      updateAuthUi();
     }
 
     function updateActiveNav() {
@@ -1430,128 +1484,71 @@
       document.getElementById("bookmarkCount").textContent = totalLinks;
     }
 
-    function selectedCategory() {
-      return siteData.find((category) => category.id === authState.selectedCategoryId) || siteData[0];
+    function findCategory(categoryId) {
+      return siteData.find((category) => String(category.id) === String(categoryId));
     }
 
-    function resetCategoryEditor() {
-      categoryEditor.reset();
-      categoryEditor.elements.id.value = "";
-      categoryEditor.elements.icon.value = "book";
+    function findBookmark(bookmarkId) {
+      for (const category of siteData) {
+        const index = category.links.findIndex((bookmark) => String(bookmark.id) === String(bookmarkId));
+        if (index > -1) return { category, index, bookmark: category.links[index] };
+      }
+      return null;
     }
 
-    function resetBookmarkEditor() {
-      bookmarkEditor.reset();
-      bookmarkEditor.elements.id.value = "";
-      if (selectedCategory()) {
-        bookmarkEditor.elements.category_id.value = selectedCategory().id;
+    async function persistBookmarkOrder(sourceCategoryId, targetCategoryId) {
+      const categoryIds = [...new Set([sourceCategoryId, targetCategoryId].filter(Boolean))];
+      for (const categoryId of categoryIds) {
+        const category = findCategory(categoryId);
+        if (category) {
+          await api("reorder/bookmarks", {
+            method: "POST",
+            body: JSON.stringify({ category_id: Number(category.id), ids: category.links.map((bookmark) => bookmark.id) }),
+          });
+        }
       }
     }
 
-    function renderEditor() {
-      updateAuthUi();
-      if (!authState.authenticated) return;
+    async function moveBookmark(bookmarkId, targetCategoryId, targetBookmarkId = null) {
+      if (targetBookmarkId && String(bookmarkId) === String(targetBookmarkId)) return;
+      const source = findBookmark(bookmarkId);
+      const targetCategory = findCategory(targetCategoryId);
+      if (!source || !targetCategory) return;
 
-      document.getElementById("editCategoryCount").textContent = `${siteData.length} 个`;
-      const categoryRoot = document.getElementById("categoryEditorList");
-      categoryRoot.innerHTML = "";
-      siteData.forEach((category, index) => {
-        const row = document.createElement("div");
-        row.className = `edit-row ${category.id === authState.selectedCategoryId ? "active" : ""}`;
-        row.innerHTML = `
-          <span>
-            <span class="edit-title">${escapeHtml(category.category)}</span>
-            <span class="edit-sub">${escapeHtml(category.icon)} · ${category.links.length} 个书签</span>
-          </span>
-          <span class="edit-actions">
-            <button type="button" data-action="up">↑</button>
-            <button type="button" data-action="down">↓</button>
-            <button type="button" data-action="edit">改</button>
-            <button type="button" data-action="delete">删</button>
-          </span>
-        `;
-        row.addEventListener("click", async (event) => {
-          const action = event.target.dataset.action;
-          if (!action) {
-            authState.selectedCategoryId = category.id;
-            resetBookmarkEditor();
-            renderEditor();
-            return;
-          }
-          if (action === "edit") {
-            categoryEditor.elements.id.value = category.id;
-            categoryEditor.elements.name.value = category.category;
-            categoryEditor.elements.icon.value = category.icon;
-          }
-          if (action === "delete") {
-            await api(`categories/${category.id}`, { method: "DELETE" });
-            authState.selectedCategoryId = null;
-            await loadSiteData();
-          }
-          if (action === "up" || action === "down") {
-            const next = action === "up" ? index - 1 : index + 1;
-            if (siteData[next]) {
-              const copy = [...siteData];
-              [copy[index], copy[next]] = [copy[next], copy[index]];
-              await api("reorder/categories", { method: "POST", body: JSON.stringify({ ids: copy.map((item) => item.id) }) });
-              await loadSiteData();
-            }
-          }
-        });
-        categoryRoot.appendChild(row);
+      const [bookmark] = source.category.links.splice(source.index, 1);
+      bookmark.category_id = Number(targetCategory.id);
+
+      let targetIndex = targetCategory.links.length;
+      if (targetBookmarkId) {
+        const foundIndex = targetCategory.links.findIndex((item) => String(item.id) === String(targetBookmarkId));
+        if (foundIndex > -1) targetIndex = foundIndex;
+      }
+      targetCategory.links.splice(targetIndex, 0, bookmark);
+      render("");
+      await persistBookmarkOrder(source.category.id, targetCategory.id);
+      await loadSiteData();
+    }
+
+    async function moveCategory(sourceCategoryId, targetCategoryId) {
+      const from = siteData.findIndex((category) => String(category.id) === String(sourceCategoryId));
+      const to = siteData.findIndex((category) => String(category.id) === String(targetCategoryId));
+      if (from < 0 || to < 0 || from === to) return;
+      const [category] = siteData.splice(from, 1);
+      siteData.splice(to, 0, category);
+      render("");
+      await api("reorder/categories", {
+        method: "POST",
+        body: JSON.stringify({ ids: siteData.map((item) => item.id) }),
       });
+      await loadSiteData();
+    }
 
-      const category = selectedCategory();
-      const links = category ? category.links : [];
-      document.getElementById("bookmarkEditorTitle").textContent = category ? `书签 · ${category.category}` : "书签";
-      document.getElementById("editBookmarkCount").textContent = `${links.length} 个`;
-      bookmarkEditor.elements.category_id.innerHTML = siteData.map((item) => `<option value="${item.id}">${escapeHtml(item.category)}</option>`).join("");
-      if (category) bookmarkEditor.elements.category_id.value = category.id;
-
-      const bookmarkRoot = document.getElementById("bookmarkEditorList");
-      bookmarkRoot.innerHTML = links.length ? "" : '<div class="empty">当前分组还没有书签。</div>';
-      links.forEach((bookmark, index) => {
-        const row = document.createElement("div");
-        row.className = "edit-row";
-        row.innerHTML = `
-          <span>
-            <span class="edit-title">${escapeHtml(bookmark.title)}</span>
-            <span class="edit-sub">${escapeHtml(bookmark.url)}</span>
-          </span>
-          <span class="edit-actions">
-            <button type="button" data-action="up">↑</button>
-            <button type="button" data-action="down">↓</button>
-            <button type="button" data-action="edit">改</button>
-            <button type="button" data-action="delete">删</button>
-          </span>
-        `;
-        row.addEventListener("click", async (event) => {
-          const action = event.target.dataset.action;
-          if (action === "edit") {
-            bookmarkEditor.elements.id.value = bookmark.id;
-            bookmarkEditor.elements.category_id.value = bookmark.category_id;
-            bookmarkEditor.elements.title.value = bookmark.title;
-            bookmarkEditor.elements.url.value = bookmark.url;
-          }
-          if (action === "delete") {
-            await api(`bookmarks/${bookmark.id}`, { method: "DELETE" });
-            await loadSiteData();
-          }
-          if ((action === "up" || action === "down") && category) {
-            const next = action === "up" ? index - 1 : index + 1;
-            if (links[next]) {
-              const copy = [...links];
-              [copy[index], copy[next]] = [copy[next], copy[index]];
-              await api("reorder/bookmarks", {
-                method: "POST",
-                body: JSON.stringify({ category_id: category.id, ids: copy.map((item) => item.id) }),
-              });
-              await loadSiteData();
-            }
-          }
-        });
-        bookmarkRoot.appendChild(row);
+    function enableDropState(element) {
+      element.addEventListener("dragenter", () => {
+        if (authState.editMode) element.classList.add("drag-over");
       });
+      element.addEventListener("dragleave", () => element.classList.remove("drag-over"));
+      element.addEventListener("drop", () => element.classList.remove("drag-over"));
     }
 
     async function loadSiteData() {
@@ -1653,36 +1650,10 @@
         document.getElementById("guestLoginToken").select();
       }
     });
-    categoryEditor.addEventListener("submit", async (event) => {
-      event.preventDefault();
-      const id = categoryEditor.elements.id.value;
-      const body = {
-        name: categoryEditor.elements.name.value,
-        icon: categoryEditor.elements.icon.value,
-      };
-      await api(id ? `categories/${id}` : "categories", { method: id ? "PUT" : "POST", body: JSON.stringify(body) });
-      resetCategoryEditor();
-      await loadSiteData();
-    });
-    bookmarkEditor.addEventListener("submit", async (event) => {
-      event.preventDefault();
-      const id = bookmarkEditor.elements.id.value;
-      const body = {
-        category_id: Number(bookmarkEditor.elements.category_id.value),
-        title: bookmarkEditor.elements.title.value,
-        url: bookmarkEditor.elements.url.value,
-      };
-      await api(id ? `bookmarks/${id}` : "bookmarks", { method: id ? "PUT" : "POST", body: JSON.stringify(body) });
-      authState.selectedCategoryId = body.category_id;
-      resetBookmarkEditor();
-      await loadSiteData();
-    });
-    document.getElementById("newCategoryBtn").addEventListener("click", resetCategoryEditor);
-    document.getElementById("newBookmarkBtn").addEventListener("click", resetBookmarkEditor);
     editToggle.addEventListener("click", () => {
       authState.editMode = !authState.editMode;
       updateAuthUi();
-      renderEditor();
+      render("");
     });
     logoutBtn.addEventListener("click", async () => {
       await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" });
