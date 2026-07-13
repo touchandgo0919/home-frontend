@@ -658,7 +658,7 @@
   <footer class="footer">Hosted on Cloudflare Pages</footer>
 
   <script>
-    const siteData = [
+    const fallbackSiteData = [
       {
         category: "工作",
         icon: "briefcase",
@@ -881,11 +881,12 @@
       "store.inibuilds.com": "assets/icons/store.inibuilds.com.png"
     };
 
+    let siteData = fallbackSiteData;
+
     const content = document.getElementById("content");
     const nav = document.getElementById("categoryNav");
     const searchInput = document.getElementById("searchInput");
     const emptyState = document.getElementById("emptyState");
-    const totalLinks = siteData.reduce((sum, item) => sum + item.links.length, 0);
     const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
     const savedTheme = localStorage.getItem("nav-theme");
 
@@ -1053,12 +1054,33 @@
       localStorage.setItem("nav-theme", theme);
     }
 
-    document.getElementById("totalCount").textContent = totalLinks;
-    document.getElementById("categoryCount").textContent = siteData.length;
-    document.getElementById("bookmarkCount").textContent = totalLinks;
+    function updateSummary() {
+      const totalLinks = siteData.reduce((sum, item) => sum + item.links.length, 0);
+      document.getElementById("totalCount").textContent = totalLinks;
+      document.getElementById("categoryCount").textContent = siteData.length;
+      document.getElementById("bookmarkCount").textContent = totalLinks;
+    }
+
+    async function loadSiteData() {
+      try {
+        const response = await fetch("/api/nav", { headers: { accept: "application/json" } });
+        if (!response.ok) {
+          throw new Error("API unavailable");
+        }
+        const payload = await response.json();
+        if (Array.isArray(payload.data)) {
+          siteData = payload.data;
+        }
+      } catch {
+        siteData = fallbackSiteData;
+      }
+
+      updateSummary();
+      render(searchInput.value);
+    }
 
     applyTheme(savedTheme || (prefersDark ? "dark" : "light"));
-    render();
+    loadSiteData();
 
     searchInput.addEventListener("input", (event) => render(event.target.value));
     document.getElementById("themeToggle").addEventListener("click", () => {

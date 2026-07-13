@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>导航管理</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f7fb;
+      --surface: #ffffff;
+      --surface-2: #eef3fb;
+      --text: #101828;
+      --muted: #667085;
+      --border: #dce4f0;
+      --accent: #2563eb;
+      --danger: #d92d20;
+      --ok: #07866f;
+      --radius: 8px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--text); font-size: 14px; }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      border-bottom: 1px solid var(--border);
+      background: color-mix(in srgb, var(--surface) 92%, transparent);
+      padding: 14px 22px;
+      backdrop-filter: blur(14px);
+    }
+
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 820; font-size: 18px; }
+    .brand a { color: var(--muted); font-size: 13px; font-weight: 700; text-decoration: none; }
+    .toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+
+    .btn {
+      min-height: 36px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--text);
+      padding: 0 12px;
+      font-weight: 730;
+    }
+
+    .btn.primary { border-color: var(--accent); background: var(--accent); color: #fff; }
+    .btn.danger { color: var(--danger); }
+    .btn.ghost { background: transparent; }
+    .btn.icon { width: 36px; padding: 0; }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 340px minmax(0, 1fr);
+      gap: 18px;
+      max-width: 1420px;
+      margin: 0 auto;
+      padding: 18px 22px 28px;
+    }
+
+    .panel {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      overflow: hidden;
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 52px;
+      border-bottom: 1px solid var(--border);
+      padding: 12px 14px;
+    }
+
+    h1, h2 { margin: 0; letter-spacing: 0; }
+    h2 { font-size: 15px; }
+    .count { color: var(--muted); font-size: 12px; font-weight: 700; }
+
+    .list { display: grid; gap: 1px; background: var(--border); }
+    .row {
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 10px;
+      min-height: 58px;
+      background: var(--surface);
+      padding: 10px;
+    }
+
+    .row[draggable="true"] { cursor: grab; }
+    .row.dragging { opacity: .45; }
+    .row.active { background: #eef5ff; }
+    .handle { color: var(--muted); text-align: center; font-size: 18px; line-height: 1; }
+    .title { overflow: hidden; font-weight: 760; text-overflow: ellipsis; white-space: nowrap; }
+    .sub { overflow: hidden; color: var(--muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+    .row-actions { display: flex; gap: 6px; }
+
+    .form {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 10px;
+      border-bottom: 1px solid var(--border);
+      padding: 14px;
+      background: var(--surface-2);
+    }
+
+    .field { display: grid; gap: 6px; }
+    .field span { color: var(--muted); font-size: 12px; font-weight: 760; }
+    .field input, .field select {
+      width: 100%;
+      height: 38px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: #fff;
+      color: var(--text);
+      outline: 0;
+      padding: 0 10px;
+    }
+
+    .span-2 { grid-column: span 2; }
+    .span-3 { grid-column: span 3; }
+    .span-4 { grid-column: span 4; }
+    .span-5 { grid-column: span 5; }
+    .span-6 { grid-column: span 6; }
+    .span-8 { grid-column: span 8; }
+    .span-12 { grid-column: span 12; }
+
+    .empty { padding: 44px 18px; color: var(--muted); text-align: center; }
+    .status { min-width: 180px; color: var(--muted); font-size: 12px; text-align: right; }
+    .status.ok { color: var(--ok); }
+    .status.bad { color: var(--danger); }
+
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; padding-inline: 12px; }
+      .topbar { align-items: flex-start; flex-direction: column; padding-inline: 12px; }
+      .toolbar { justify-content: flex-start; }
+      .span-2, .span-3, .span-4, .span-5, .span-6, .span-8 { grid-column: span 12; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span>导航管理</span>
+      <a href="/">返回首页</a>
+    </div>
+    <div class="toolbar">
+      <input id="tokenInput" class="btn" type="password" placeholder="ADMIN_TOKEN">
+      <button id="saveTokenBtn" class="btn" type="button">保存令牌</button>
+      <button id="refreshBtn" class="btn primary" type="button">刷新</button>
+      <span id="status" class="status">等待加载</span>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="panel">
+      <div class="panel-head">
+        <h2>分类</h2>
+        <span id="categoryCount" class="count">0</span>
+      </div>
+      <form id="categoryForm" class="form">
+        <input type="hidden" name="id">
+        <label class="field span-5"><span>名称</span><input name="name" required placeholder="工作"></label>
+        <label class="field span-4">
+          <span>图标</span>
+          <select name="icon">
+            <option value="briefcase">工作</option>
+            <option value="book">学习</option>
+            <option value="cart">购物</option>
+            <option value="smile">娱乐</option>
+            <option value="money">理财</option>
+            <option value="router">路由</option>
+          </select>
+        </label>
+        <button class="btn primary span-3" type="submit">保存</button>
+        <button id="resetCategoryBtn" class="btn ghost span-12" type="button">新建分类</button>
+      </form>
+      <div id="categoryList" class="list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2 id="bookmarkTitle">书签</h2>
+        <span id="bookmarkCount" class="count">0</span>
+      </div>
+      <form id="bookmarkForm" class="form">
+        <input type="hidden" name="id">
+        <label class="field span-3">
+          <span>分类</span>
+          <select name="category_id" required></select>
+        </label>
+        <label class="field span-3"><span>标题</span><input name="title" required placeholder="chatgpt"></label>
+        <label class="field span-4"><span>网址</span><input name="url" required placeholder="https://chatgpt.com/"></label>
+        <button class="btn primary span-2" type="submit">保存</button>
+        <button id="resetBookmarkBtn" class="btn ghost span-12" type="button">新建书签</button>
+      </form>
+      <div id="bookmarkList" class="list"></div>
+    </section>
+  </main>
+
+  <script>
+    const state = { data: [], selectedCategoryId: null, dragging: null };
+    const tokenInput = document.getElementById("tokenInput");
+    const statusEl = document.getElementById("status");
+    const categoryForm = document.getElementById("categoryForm");
+    const bookmarkForm = document.getElementById("bookmarkForm");
+
+    tokenInput.value = localStorage.getItem("nav-admin-token") || "";
+
+    function setStatus(text, kind = "") {
+      statusEl.textContent = text;
+      statusEl.className = `status ${kind}`;
+    }
+
+    function token() {
+      return tokenInput.value.trim();
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    async function api(path, options = {}) {
+      const response = await fetch(`/api/${path}`, {
+        ...options,
+        headers: {
+          "content-type": "application/json",
+          ...(token() ? { authorization: `Bearer ${token()}` } : {}),
+          ...(options.headers || {}),
+        },
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(body.error || "请求失败");
+      }
+      return body;
+    }
+
+    async function load() {
+      setStatus("加载中");
+      const body = await api("nav");
+      state.data = body.data || [];
+      if (!state.selectedCategoryId && state.data[0]) {
+        state.selectedCategoryId = state.data[0].id;
+      }
+      render();
+      setStatus("已同步", "ok");
+    }
+
+    function selectedCategory() {
+      return state.data.find((category) => category.id === state.selectedCategoryId) || state.data[0];
+    }
+
+    function resetCategoryForm() {
+      categoryForm.reset();
+      categoryForm.elements.id.value = "";
+      categoryForm.elements.icon.value = "book";
+    }
+
+    function resetBookmarkForm() {
+      bookmarkForm.reset();
+      bookmarkForm.elements.id.value = "";
+      if (selectedCategory()) {
+        bookmarkForm.elements.category_id.value = selectedCategory().id;
+      }
+    }
+
+    function render() {
+      renderCategoryList();
+      renderBookmarkFormOptions();
+      renderBookmarkList();
+    }
+
+    function renderCategoryList() {
+      document.getElementById("categoryCount").textContent = `${state.data.length} 个分类`;
+      const root = document.getElementById("categoryList");
+      root.innerHTML = "";
+      state.data.forEach((category) => {
+        const row = document.createElement("div");
+        row.className = `row ${category.id === state.selectedCategoryId ? "active" : ""}`;
+        row.draggable = true;
+        row.dataset.id = category.id;
+        row.innerHTML = `
+          <span class="handle">≡</span>
+          <span>
+            <span class="title">${escapeHtml(category.category)}</span>
+            <span class="sub">${escapeHtml(category.icon)} · ${category.links.length} 个书签</span>
+          </span>
+          <span class="row-actions">
+            <button class="btn icon" type="button" data-action="edit">✎</button>
+            <button class="btn icon danger" type="button" data-action="delete">×</button>
+          </span>
+        `;
+        row.addEventListener("click", (event) => {
+          const action = event.target.dataset.action;
+          if (action === "edit") {
+            categoryForm.elements.id.value = category.id;
+            categoryForm.elements.name.value = category.category;
+            categoryForm.elements.icon.value = category.icon;
+            return;
+          }
+          if (action === "delete") {
+            deleteCategory(category.id);
+            return;
+          }
+          state.selectedCategoryId = category.id;
+          resetBookmarkForm();
+          render();
+        });
+        bindDrag(row, "category");
+        root.appendChild(row);
+      });
+    }
+
+    function renderBookmarkFormOptions() {
+      const select = bookmarkForm.elements.category_id;
+      select.innerHTML = state.data.map((category) => `<option value="${category.id}">${escapeHtml(category.category)}</option>`).join("");
+      if (selectedCategory()) {
+        select.value = selectedCategory().id;
+      }
+    }
+
+    function renderBookmarkList() {
+      const category = selectedCategory();
+      const root = document.getElementById("bookmarkList");
+      const links = category ? category.links : [];
+      document.getElementById("bookmarkTitle").textContent = category ? `书签 · ${category.category}` : "书签";
+      document.getElementById("bookmarkCount").textContent = `${links.length} 个书签`;
+      root.innerHTML = "";
+
+      if (!links.length) {
+        root.innerHTML = '<div class="empty">当前分类还没有书签。</div>';
+        return;
+      }
+
+      links.forEach((bookmark) => {
+        const row = document.createElement("div");
+        row.className = "row";
+        row.draggable = true;
+        row.dataset.id = bookmark.id;
+        row.innerHTML = `
+          <span class="handle">≡</span>
+          <span>
+            <span class="title">${escapeHtml(bookmark.title)}</span>
+            <span class="sub">${escapeHtml(bookmark.url)}</span>
+          </span>
+          <span class="row-actions">
+            <button class="btn icon" type="button" data-action="edit">✎</button>
+            <button class="btn icon danger" type="button" data-action="delete">×</button>
+          </span>
+        `;
+        row.addEventListener("click", (event) => {
+          const action = event.target.dataset.action;
+          if (action === "edit") {
+            bookmarkForm.elements.id.value = bookmark.id;
+            bookmarkForm.elements.category_id.value = bookmark.category_id;
+            bookmarkForm.elements.title.value = bookmark.title;
+            bookmarkForm.elements.url.value = bookmark.url;
+          }
+          if (action === "delete") {
+            deleteBookmark(bookmark.id);
+          }
+        });
+        bindDrag(row, "bookmark");
+        root.appendChild(row);
+      });
+    }
+
+    function bindDrag(row, type) {
+      row.addEventListener("dragstart", () => {
+        state.dragging = { id: Number(row.dataset.id), type };
+        row.classList.add("dragging");
+      });
+      row.addEventListener("dragend", () => {
+        row.classList.remove("dragging");
+        state.dragging = null;
+      });
+      row.addEventListener("dragover", (event) => event.preventDefault());
+      row.addEventListener("drop", async (event) => {
+        event.preventDefault();
+        if (!state.dragging || state.dragging.type !== type) return;
+        const targetId = Number(row.dataset.id);
+        if (targetId === state.dragging.id) return;
+        await moveItem(type, state.dragging.id, targetId);
+      });
+    }
+
+    async function moveItem(type, sourceId, targetId) {
+      const list = type === "category" ? state.data : selectedCategory().links;
+      const from = list.findIndex((item) => item.id === sourceId);
+      const to = list.findIndex((item) => item.id === targetId);
+      if (from < 0 || to < 0) return;
+      const [item] = list.splice(from, 1);
+      list.splice(to, 0, item);
+      render();
+      const ids = list.map((item) => item.id);
+      if (type === "category") {
+        await api("reorder/categories", { method: "POST", body: JSON.stringify({ ids }) });
+      } else {
+        await api("reorder/bookmarks", {
+          method: "POST",
+          body: JSON.stringify({ category_id: selectedCategory().id, ids }),
+        });
+      }
+      setStatus("排序已保存", "ok");
+    }
+
+    categoryForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const body = {
+        name: categoryForm.elements.name.value,
+        icon: categoryForm.elements.icon.value,
+      };
+      const id = categoryForm.elements.id.value;
+      await api(id ? `categories/${id}` : "categories", { method: id ? "PUT" : "POST", body: JSON.stringify(body) });
+      resetCategoryForm();
+      await load();
+    });
+
+    bookmarkForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const body = {
+        category_id: Number(bookmarkForm.elements.category_id.value),
+        title: bookmarkForm.elements.title.value,
+        url: bookmarkForm.elements.url.value,
+      };
+      const id = bookmarkForm.elements.id.value;
+      await api(id ? `bookmarks/${id}` : "bookmarks", { method: id ? "PUT" : "POST", body: JSON.stringify(body) });
+      state.selectedCategoryId = body.category_id;
+      resetBookmarkForm();
+      await load();
+    });
+
+    async function deleteCategory(id) {
+      await api(`categories/${id}`, { method: "DELETE" });
+      state.selectedCategoryId = null;
+      await load();
+    }
+
+    async function deleteBookmark(id) {
+      await api(`bookmarks/${id}`, { method: "DELETE" });
+      await load();
+    }
+
+    document.getElementById("saveTokenBtn").addEventListener("click", () => {
+      localStorage.setItem("nav-admin-token", token());
+      setStatus("令牌已保存", "ok");
+    });
+    document.getElementById("refreshBtn").addEventListener("click", () => load().catch((error) => setStatus(error.message, "bad")));
+    document.getElementById("resetCategoryBtn").addEventListener("click", resetCategoryForm);
+    document.getElementById("resetBookmarkBtn").addEventListener("click", resetBookmarkForm);
+
+    load().catch((error) => setStatus(error.message, "bad"));
+  </script>
+</body>
+</html>
