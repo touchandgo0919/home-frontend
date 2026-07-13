@@ -99,6 +99,8 @@ const authCookie = (token) => {
   return `${COOKIE_NAME}=${encodeURIComponent(token)}; Path=/; Max-Age=${COOKIE_MAX_AGE}; Expires=${expires}; HttpOnly; SameSite=Lax`;
 };
 
+const clearAuthCookie = () => `${COOKIE_NAME}=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Lax`;
+
 const rawRequestedTenantSlug = (request) => {
   const url = new URL(request.url);
   const value = url.searchParams.get("tenant") || request.headers.get("x-tenant-slug");
@@ -446,6 +448,10 @@ export async function onRequest(context) {
       }, 200, {
         "set-cookie": authCookie(requireText(body.token, "token")),
       });
+    }
+
+    if (method === "POST" && path === "auth/logout") {
+      return json({ ok: true }, 200, { "set-cookie": clearAuthCookie() });
     }
 
     const actor = await requireActor(request, env, db);

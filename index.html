@@ -82,7 +82,7 @@
 
     .topbar-inner {
       display: grid;
-      grid-template-columns: minmax(170px, 260px) minmax(260px, 720px) auto;
+      grid-template-columns: minmax(170px, 1fr) auto;
       align-items: center;
       gap: 24px;
       max-width: 1480px;
@@ -128,6 +128,7 @@
     }
 
     .search {
+      display: none;
       position: relative;
     }
 
@@ -248,6 +249,41 @@
       cursor: pointer;
       padding: 0 12px;
       font-weight: 760;
+    }
+
+    .token-chip {
+      display: none;
+      max-width: 280px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--muted);
+      padding: 8px 10px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .inline-action {
+      display: none;
+      min-height: 38px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--muted);
+      cursor: pointer;
+      padding: 0 12px;
+      font-weight: 760;
+    }
+
+    .inline-action.primary {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .inline-action.danger {
+      color: #d92d20;
     }
 
     .theme-toggle svg {
@@ -548,6 +584,121 @@
       margin-bottom: 6px;
     }
 
+    .edit-panel {
+      display: none;
+      grid-template-columns: 340px minmax(0, 1fr);
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .edit-panel.active {
+      display: grid;
+    }
+
+    .edit-box {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      overflow: hidden;
+    }
+
+    .edit-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      min-height: 48px;
+      border-bottom: 1px solid var(--border);
+      padding: 12px 14px;
+      font-weight: 820;
+    }
+
+    .edit-form {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 8px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface-2);
+      padding: 12px;
+    }
+
+    .edit-form input,
+    .edit-form select {
+      width: 100%;
+      height: 38px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--text);
+      outline: 0;
+      padding: 0 10px;
+    }
+
+    .edit-form button,
+    .edit-row button {
+      min-height: 36px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      padding: 0 10px;
+      font-weight: 760;
+    }
+
+    .edit-form button.primary {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .edit-list {
+      display: grid;
+      gap: 1px;
+      background: var(--border);
+    }
+
+    .edit-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 8px;
+      min-height: 54px;
+      background: var(--surface);
+      padding: 10px 12px;
+    }
+
+    .edit-row.active {
+      background: var(--accent-soft);
+    }
+
+    .edit-title {
+      overflow: hidden;
+      font-weight: 780;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .edit-sub {
+      overflow: hidden;
+      color: var(--muted);
+      font-size: 12px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .edit-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .span-2 { grid-column: span 2; }
+    .span-3 { grid-column: span 3; }
+    .span-4 { grid-column: span 4; }
+    .span-5 { grid-column: span 5; }
+    .span-6 { grid-column: span 6; }
+    .span-12 { grid-column: span 12; }
+
     .guest-empty {
       display: none;
       min-height: calc(100vh - 170px);
@@ -630,6 +781,10 @@
       .summary {
         grid-template-columns: 1fr;
       }
+
+      .edit-panel {
+        grid-template-columns: 1fr;
+      }
     }
 
     @media (max-width: 640px) {
@@ -641,7 +796,8 @@
       }
 
       .brand-subtitle,
-      .search-kbd {
+      .search-kbd,
+      .token-chip {
         display: none;
       }
 
@@ -651,6 +807,14 @@
 
       .login-form input {
         width: 126px;
+      }
+
+      .span-2,
+      .span-3,
+      .span-4,
+      .span-5,
+      .span-6 {
+        grid-column: span 12;
       }
 
       .theme-toggle svg {
@@ -700,7 +864,10 @@
           <input id="loginToken" type="password" autocomplete="current-password" placeholder="Token">
           <button type="submit">登录</button>
         </form>
-        <a class="admin-link" href="/admin/" aria-label="进入管理后台">管理</a>
+        <span class="token-chip" id="tokenDisplay"></span>
+        <button class="inline-action primary" id="editToggle" type="button">编辑</button>
+        <a class="admin-link" id="adminLink" href="/admin/" aria-label="进入管理后台">管理</a>
+        <button class="inline-action danger" id="logoutBtn" type="button">退出</button>
         <button class="theme-toggle" id="themeToggle" type="button" aria-label="切换深色浅色模式">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="4"></circle>
@@ -739,6 +906,46 @@
           <div class="stat-value" id="matchCount">0</div>
         </div>
       </div>
+
+      <section class="edit-panel" id="editPanel">
+        <div class="edit-box">
+          <div class="edit-head">
+            <span>分组</span>
+            <span id="editCategoryCount">0</span>
+          </div>
+          <form class="edit-form" id="categoryEditor">
+            <input type="hidden" name="id">
+            <input class="span-5" name="name" required placeholder="分组名称">
+            <select class="span-4" name="icon">
+              <option value="briefcase">工作</option>
+              <option value="book">学习</option>
+              <option value="cart">购物</option>
+              <option value="smile">娱乐</option>
+              <option value="money">理财</option>
+              <option value="router">路由</option>
+            </select>
+            <button class="primary span-3" type="submit">保存</button>
+            <button class="span-12" id="newCategoryBtn" type="button">新建分组</button>
+          </form>
+          <div class="edit-list" id="categoryEditorList"></div>
+        </div>
+
+        <div class="edit-box">
+          <div class="edit-head">
+            <span id="bookmarkEditorTitle">书签</span>
+            <span id="editBookmarkCount">0</span>
+          </div>
+          <form class="edit-form" id="bookmarkEditor">
+            <input type="hidden" name="id">
+            <select class="span-3" name="category_id" required></select>
+            <input class="span-3" name="title" required placeholder="标题">
+            <input class="span-4" name="url" required placeholder="https://">
+            <button class="primary span-2" type="submit">保存</button>
+            <button class="span-12" id="newBookmarkBtn" type="button">新建书签</button>
+          </form>
+          <div class="edit-list" id="bookmarkEditorList"></div>
+        </div>
+      </section>
 
       <div id="content"></div>
       <div class="empty" id="emptyState">
@@ -986,6 +1193,7 @@
     };
 
     let siteData = fallbackSiteData;
+    const authState = { authenticated: false, role: "", tenant: null, editMode: false, selectedCategoryId: null };
 
     const content = document.getElementById("content");
     const nav = document.getElementById("categoryNav");
@@ -993,8 +1201,53 @@
     const emptyState = document.getElementById("emptyState");
     const guestEmpty = document.getElementById("guestEmpty");
     const shell = document.querySelector(".shell");
+    const loginForm = document.getElementById("loginForm");
+    const tokenDisplay = document.getElementById("tokenDisplay");
+    const editToggle = document.getElementById("editToggle");
+    const adminLink = document.getElementById("adminLink");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const editPanel = document.getElementById("editPanel");
+    const categoryEditor = document.getElementById("categoryEditor");
+    const bookmarkEditor = document.getElementById("bookmarkEditor");
     const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
     const savedTheme = localStorage.getItem("nav-theme");
+
+    function visibleToken() {
+      return localStorage.getItem("nav-visible-token") || "";
+    }
+
+    async function api(path, options = {}) {
+      const token = visibleToken();
+      const response = await fetch(`/api/${path}`, {
+        ...options,
+        credentials: "same-origin",
+        headers: {
+          "content-type": "application/json",
+          ...(token ? { authorization: `Bearer ${token}` } : {}),
+          ...(options.headers || {}),
+        },
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(body.error || "请求失败");
+      }
+      return body;
+    }
+
+    function canManageSystem() {
+      return ["platform", "admin"].includes(authState.role);
+    }
+
+    function updateAuthUi() {
+      loginForm.style.display = authState.authenticated ? "none" : "flex";
+      tokenDisplay.style.display = authState.authenticated ? "inline-flex" : "none";
+      tokenDisplay.textContent = visibleToken();
+      editToggle.style.display = authState.authenticated ? "inline-flex" : "none";
+      editToggle.textContent = authState.editMode ? "收起编辑" : "编辑";
+      adminLink.style.display = authState.authenticated && canManageSystem() ? "inline-flex" : "none";
+      logoutBtn.style.display = authState.authenticated ? "inline-flex" : "none";
+      editPanel.classList.toggle("active", authState.authenticated && authState.editMode);
+    }
 
     function svgIcon(name) {
       return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name] || icons.book}</svg>`;
@@ -1070,6 +1323,15 @@
       return text.toLowerCase().trim();
     }
 
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
     function render(filterText = "") {
       const keyword = normalize(filterText);
       let matches = 0;
@@ -1141,6 +1403,7 @@
       document.getElementById("matchCount").textContent = matches;
       emptyState.style.display = matches ? "none" : "block";
       updateActiveNav();
+      renderEditor();
     }
 
     function updateActiveNav() {
@@ -1167,6 +1430,130 @@
       document.getElementById("bookmarkCount").textContent = totalLinks;
     }
 
+    function selectedCategory() {
+      return siteData.find((category) => category.id === authState.selectedCategoryId) || siteData[0];
+    }
+
+    function resetCategoryEditor() {
+      categoryEditor.reset();
+      categoryEditor.elements.id.value = "";
+      categoryEditor.elements.icon.value = "book";
+    }
+
+    function resetBookmarkEditor() {
+      bookmarkEditor.reset();
+      bookmarkEditor.elements.id.value = "";
+      if (selectedCategory()) {
+        bookmarkEditor.elements.category_id.value = selectedCategory().id;
+      }
+    }
+
+    function renderEditor() {
+      updateAuthUi();
+      if (!authState.authenticated) return;
+
+      document.getElementById("editCategoryCount").textContent = `${siteData.length} 个`;
+      const categoryRoot = document.getElementById("categoryEditorList");
+      categoryRoot.innerHTML = "";
+      siteData.forEach((category, index) => {
+        const row = document.createElement("div");
+        row.className = `edit-row ${category.id === authState.selectedCategoryId ? "active" : ""}`;
+        row.innerHTML = `
+          <span>
+            <span class="edit-title">${escapeHtml(category.category)}</span>
+            <span class="edit-sub">${escapeHtml(category.icon)} · ${category.links.length} 个书签</span>
+          </span>
+          <span class="edit-actions">
+            <button type="button" data-action="up">↑</button>
+            <button type="button" data-action="down">↓</button>
+            <button type="button" data-action="edit">改</button>
+            <button type="button" data-action="delete">删</button>
+          </span>
+        `;
+        row.addEventListener("click", async (event) => {
+          const action = event.target.dataset.action;
+          if (!action) {
+            authState.selectedCategoryId = category.id;
+            resetBookmarkEditor();
+            renderEditor();
+            return;
+          }
+          if (action === "edit") {
+            categoryEditor.elements.id.value = category.id;
+            categoryEditor.elements.name.value = category.category;
+            categoryEditor.elements.icon.value = category.icon;
+          }
+          if (action === "delete") {
+            await api(`categories/${category.id}`, { method: "DELETE" });
+            authState.selectedCategoryId = null;
+            await loadSiteData();
+          }
+          if (action === "up" || action === "down") {
+            const next = action === "up" ? index - 1 : index + 1;
+            if (siteData[next]) {
+              const copy = [...siteData];
+              [copy[index], copy[next]] = [copy[next], copy[index]];
+              await api("reorder/categories", { method: "POST", body: JSON.stringify({ ids: copy.map((item) => item.id) }) });
+              await loadSiteData();
+            }
+          }
+        });
+        categoryRoot.appendChild(row);
+      });
+
+      const category = selectedCategory();
+      const links = category ? category.links : [];
+      document.getElementById("bookmarkEditorTitle").textContent = category ? `书签 · ${category.category}` : "书签";
+      document.getElementById("editBookmarkCount").textContent = `${links.length} 个`;
+      bookmarkEditor.elements.category_id.innerHTML = siteData.map((item) => `<option value="${item.id}">${escapeHtml(item.category)}</option>`).join("");
+      if (category) bookmarkEditor.elements.category_id.value = category.id;
+
+      const bookmarkRoot = document.getElementById("bookmarkEditorList");
+      bookmarkRoot.innerHTML = links.length ? "" : '<div class="empty">当前分组还没有书签。</div>';
+      links.forEach((bookmark, index) => {
+        const row = document.createElement("div");
+        row.className = "edit-row";
+        row.innerHTML = `
+          <span>
+            <span class="edit-title">${escapeHtml(bookmark.title)}</span>
+            <span class="edit-sub">${escapeHtml(bookmark.url)}</span>
+          </span>
+          <span class="edit-actions">
+            <button type="button" data-action="up">↑</button>
+            <button type="button" data-action="down">↓</button>
+            <button type="button" data-action="edit">改</button>
+            <button type="button" data-action="delete">删</button>
+          </span>
+        `;
+        row.addEventListener("click", async (event) => {
+          const action = event.target.dataset.action;
+          if (action === "edit") {
+            bookmarkEditor.elements.id.value = bookmark.id;
+            bookmarkEditor.elements.category_id.value = bookmark.category_id;
+            bookmarkEditor.elements.title.value = bookmark.title;
+            bookmarkEditor.elements.url.value = bookmark.url;
+          }
+          if (action === "delete") {
+            await api(`bookmarks/${bookmark.id}`, { method: "DELETE" });
+            await loadSiteData();
+          }
+          if ((action === "up" || action === "down") && category) {
+            const next = action === "up" ? index - 1 : index + 1;
+            if (links[next]) {
+              const copy = [...links];
+              [copy[index], copy[next]] = [copy[next], copy[index]];
+              await api("reorder/bookmarks", {
+                method: "POST",
+                body: JSON.stringify({ category_id: category.id, ids: copy.map((item) => item.id) }),
+              });
+              await loadSiteData();
+            }
+          }
+        });
+        bookmarkRoot.appendChild(row);
+      });
+    }
+
     async function loadSiteData() {
       try {
         const response = await fetch("/api/nav", {
@@ -1179,26 +1566,49 @@
         const payload = await response.json();
         if (!payload.authenticated) {
           siteData = [];
+          authState.authenticated = false;
+          authState.role = "";
+          authState.tenant = null;
+          authState.editMode = false;
           shell.style.display = "none";
           guestEmpty.style.display = "grid";
           updateSummary();
+          updateAuthUi();
           return;
         }
         if (Array.isArray(payload.data)) {
           siteData = payload.data;
         }
+        authState.authenticated = true;
+        authState.tenant = payload.tenant || null;
+        try {
+          const session = await api("auth/session");
+          authState.role = session.role || "";
+          authState.tenant = session.tenant || authState.tenant;
+        } catch {
+          authState.role = "";
+        }
+        if (!authState.selectedCategoryId && siteData[0]) {
+          authState.selectedCategoryId = siteData[0].id;
+        }
       } catch {
         siteData = [];
+        authState.authenticated = false;
+        authState.role = "";
+        authState.tenant = null;
+        authState.editMode = false;
         shell.style.display = "none";
         guestEmpty.style.display = "grid";
         updateSummary();
+        updateAuthUi();
         return;
       }
 
       shell.style.display = "grid";
       guestEmpty.style.display = "none";
       updateSummary();
-      render(searchInput.value);
+      updateAuthUi();
+      render("");
     }
 
     applyTheme(savedTheme || (prefersDark ? "dark" : "light"));
@@ -1216,7 +1626,10 @@
         body: JSON.stringify({ token }),
       });
       if (response.ok) {
-        window.location.href = "/admin/";
+        localStorage.setItem("nav-visible-token", token);
+        document.getElementById("loginToken").value = "";
+        document.getElementById("guestLoginToken").value = "";
+        await loadSiteData();
         return;
       }
       throw new Error("登录失败");
@@ -1240,15 +1653,45 @@
         document.getElementById("guestLoginToken").select();
       }
     });
+    categoryEditor.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const id = categoryEditor.elements.id.value;
+      const body = {
+        name: categoryEditor.elements.name.value,
+        icon: categoryEditor.elements.icon.value,
+      };
+      await api(id ? `categories/${id}` : "categories", { method: id ? "PUT" : "POST", body: JSON.stringify(body) });
+      resetCategoryEditor();
+      await loadSiteData();
+    });
+    bookmarkEditor.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const id = bookmarkEditor.elements.id.value;
+      const body = {
+        category_id: Number(bookmarkEditor.elements.category_id.value),
+        title: bookmarkEditor.elements.title.value,
+        url: bookmarkEditor.elements.url.value,
+      };
+      await api(id ? `bookmarks/${id}` : "bookmarks", { method: id ? "PUT" : "POST", body: JSON.stringify(body) });
+      authState.selectedCategoryId = body.category_id;
+      resetBookmarkEditor();
+      await loadSiteData();
+    });
+    document.getElementById("newCategoryBtn").addEventListener("click", resetCategoryEditor);
+    document.getElementById("newBookmarkBtn").addEventListener("click", resetBookmarkEditor);
+    editToggle.addEventListener("click", () => {
+      authState.editMode = !authState.editMode;
+      updateAuthUi();
+      renderEditor();
+    });
+    logoutBtn.addEventListener("click", async () => {
+      await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" });
+      localStorage.removeItem("nav-visible-token");
+      window.location.href = "/";
+    });
     document.getElementById("themeToggle").addEventListener("click", () => {
       const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
       applyTheme(nextTheme);
-    });
-    document.addEventListener("keydown", (event) => {
-      if (event.key === "/" && document.activeElement !== searchInput) {
-        event.preventDefault();
-        searchInput.focus();
-      }
     });
     window.addEventListener("scroll", updateActiveNav, { passive: true });
   </script>
