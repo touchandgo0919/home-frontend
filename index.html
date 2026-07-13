@@ -371,7 +371,7 @@
     [data-editing="true"] .card {
       outline: 1px dashed color-mix(in srgb, var(--accent) 44%, transparent);
       outline-offset: -5px;
-      padding-right: 52px;
+      padding-right: 42px;
     }
 
     .sort-placeholder {
@@ -676,15 +676,24 @@
     .card-actions {
       display: none;
       position: absolute;
-      top: 8px;
-      right: 8px;
+      top: 7px;
+      right: 7px;
       flex-direction: column;
-      gap: 6px;
+      gap: 5px;
       z-index: 2;
     }
 
     [data-editing="true"] .card-actions {
       display: inline-flex;
+    }
+
+    .card-actions .tool-btn.icon {
+      width: 24px;
+      min-width: 24px;
+      height: 24px;
+      border-radius: 7px;
+      padding: 0;
+      font-size: 12px;
     }
 
     .modal {
