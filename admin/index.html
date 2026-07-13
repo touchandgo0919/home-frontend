@@ -42,6 +42,7 @@
     .brand { display: flex; align-items: center; gap: 10px; font-weight: 820; font-size: 18px; }
     .brand a { color: var(--muted); font-size: 13px; font-weight: 700; text-decoration: none; }
     .toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .toolbar input { width: min(360px, 46vw); }
 
     .btn {
       min-height: 36px;
@@ -70,6 +71,7 @@
     .settings-grid {
       display: grid;
       gap: 18px;
+      grid-template-columns: minmax(0, 1.15fr) minmax(360px, .85fr);
     }
 
     .panel {
@@ -121,6 +123,15 @@
       background: var(--surface-2);
     }
 
+    .form-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .form-actions .btn { min-width: 96px; }
+
     .field { display: grid; gap: 6px; }
     .field span { color: var(--muted); font-size: 12px; font-weight: 760; }
     .field input, .field select {
@@ -136,9 +147,11 @@
 
     .input-action {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-columns: minmax(0, 1fr) 72px;
       gap: 8px;
     }
+
+    .input-action .btn { padding: 0 10px; }
 
     .span-1 { grid-column: span 1; }
     .span-2 { grid-column: span 2; }
@@ -153,12 +166,17 @@
     .status { min-width: 180px; color: var(--muted); font-size: 12px; text-align: right; }
     .status.ok { color: var(--ok); }
     .status.bad { color: var(--danger); }
+    .hint { align-self: center; color: var(--muted); font-size: 12px; font-weight: 650; }
 
     @media (max-width: 900px) {
+      .settings-grid { grid-template-columns: 1fr; }
       .tab-panel { padding-inline: 12px; }
       .topbar { align-items: flex-start; flex-direction: column; padding-inline: 12px; }
       .toolbar { justify-content: flex-start; }
+      .toolbar input { width: min(100%, 360px); }
       .span-1, .span-2, .span-3, .span-4, .span-5, .span-6, .span-8 { grid-column: span 12; }
+      .form-actions { justify-content: stretch; }
+      .form-actions .btn { flex: 1; }
     }
   </style>
 </head>
@@ -185,24 +203,27 @@
         </div>
         <form id="tenantForm" class="form">
           <input type="hidden" name="id">
-          <label class="field span-3"><span>标识</span><input name="slug" required placeholder="team-a"></label>
-          <label class="field span-3"><span>名称</span><input name="name" required placeholder="Team A"></label>
-          <label class="field span-3">
-            <span>初始 token</span>
+          <label class="field span-4"><span>标识</span><input name="slug" required placeholder="zhaotao"></label>
+          <label class="field span-4"><span>名称</span><input name="name" required placeholder="zhaotao"></label>
+          <label class="field span-4">
+            <span>令牌</span>
             <span class="input-action">
-              <input name="admin_token" placeholder="留空则编辑时不修改">
+              <input name="admin_token" placeholder="编辑时留空则不修改">
               <button id="generateTenantTokenBtn" class="btn" type="button">随机</button>
             </span>
           </label>
-          <label class="field span-2">
+          <label class="field span-4">
             <span>角色</span>
             <select name="token_role">
               <option value="admin">管理员</option>
               <option value="editor">编辑者</option>
             </select>
           </label>
-          <button class="btn primary span-1" type="submit">保存租户</button>
-          <button id="resetTenantBtn" class="btn ghost span-12" type="button">新建租户</button>
+          <div class="span-4 hint">新增租户时会同时创建这枚令牌；编辑租户时填入新令牌即可追加。</div>
+          <div class="form-actions span-4">
+            <button id="resetTenantBtn" class="btn ghost" type="button">新建</button>
+            <button class="btn primary" type="submit">保存租户</button>
+          </div>
         </form>
         <div id="tenantList" class="list"></div>
       </section>
@@ -213,16 +234,24 @@
           <span id="tokenCount" class="count">租户管理员</span>
         </div>
         <form id="accessTokenForm" class="form">
-          <label class="field span-3"><span>名称</span><input name="name" required placeholder="同事 A"></label>
-          <label class="field span-5"><span>Token</span><input name="token" required placeholder="一段足够长的随机字符串"></label>
-          <label class="field span-2">
+          <label class="field span-6"><span>名称</span><input name="name" required placeholder="同事 A"></label>
+          <label class="field span-6">
             <span>角色</span>
             <select name="role">
               <option value="editor">编辑者</option>
               <option value="admin">管理员</option>
             </select>
           </label>
-          <button class="btn primary span-2" type="submit">创建 token</button>
+          <label class="field span-12">
+            <span>Token</span>
+            <span class="input-action">
+              <input name="token" required placeholder="随机生成或手动输入">
+              <button id="generateAccessTokenBtn" class="btn" type="button">随机</button>
+            </span>
+          </label>
+          <div class="form-actions span-12">
+            <button class="btn primary" type="submit">创建 token</button>
+          </div>
         </form>
         <div id="accessTokenList" class="list"></div>
       </section>
@@ -232,6 +261,8 @@
   <script>
     const state = { tenants: [], tokens: [], role: "", tenant: null };
     const tokenInput = document.getElementById("tokenInput");
+    const loginBtn = document.getElementById("loginBtn");
+    const refreshBtn = document.getElementById("refreshBtn");
     const statusEl = document.getElementById("status");
     const tenantForm = document.getElementById("tenantForm");
     const accessTokenForm = document.getElementById("accessTokenForm");
@@ -257,9 +288,10 @@
     }
 
     function randomToken() {
-      const bytes = new Uint8Array(32);
+      const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+      const bytes = new Uint8Array(18);
       crypto.getRandomValues(bytes);
-      return [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+      return [...bytes].map((byte) => alphabet[byte % alphabet.length]).join("");
     }
 
     async function api(path, options = {}) {
@@ -324,9 +356,17 @@
     }
 
     function render() {
+      renderToolbar();
       renderTabs();
       renderTenantAdmin();
       renderTokenAdmin();
+    }
+
+    function renderToolbar() {
+      const loggedIn = Boolean(state.role);
+      tokenInput.style.display = loggedIn ? "none" : "";
+      loginBtn.style.display = loggedIn ? "none" : "";
+      refreshBtn.textContent = loggedIn ? "刷新" : "检查会话";
     }
 
     function canUseSettings() {
@@ -343,6 +383,7 @@
     function resetTenantForm() {
       tenantForm.reset();
       tenantForm.elements.id.value = "";
+      tenantForm.elements.admin_token.value = randomToken();
       tenantForm.elements.token_role.value = "admin";
     }
 
@@ -451,14 +492,18 @@
       await load();
     });
 
-    document.getElementById("loginBtn").addEventListener("click", () => login().catch((error) => setStatus(error.message, "bad")));
-    document.getElementById("refreshBtn").addEventListener("click", () => load().catch((error) => setStatus(error.message, "bad")));
+    loginBtn.addEventListener("click", () => login().catch((error) => setStatus(error.message, "bad")));
+    refreshBtn.addEventListener("click", () => load().catch((error) => setStatus(error.message, "bad")));
     document.getElementById("generateTenantTokenBtn").addEventListener("click", () => {
       tenantForm.elements.admin_token.value = randomToken();
     });
+    document.getElementById("generateAccessTokenBtn").addEventListener("click", () => {
+      accessTokenForm.elements.token.value = randomToken();
+    });
     document.getElementById("resetTenantBtn").addEventListener("click", resetTenantForm);
 
-    renderTabs();
+    resetTenantForm();
+    render();
     restoreSession().catch(() => setStatus("请输入 token"));
   </script>
 </body>
