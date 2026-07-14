@@ -94,8 +94,16 @@
       padding: 14px 24px;
     }
 
+    .brand-search {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      min-width: 0;
+    }
+
     .brand {
       display: flex;
+      flex: 0 0 auto;
       align-items: center;
       gap: 12px;
       min-width: 0;
@@ -132,8 +140,11 @@
     }
 
     .search {
-      display: none;
+      display: block;
       position: relative;
+      flex: 1 1 320px;
+      width: min(440px, 34vw);
+      min-width: 220px;
     }
 
     .search svg {
@@ -965,9 +976,14 @@
         grid-template-columns: 1fr auto;
       }
 
-      .search {
+      .brand-search {
         grid-column: 1 / -1;
-        grid-row: 2;
+        flex-wrap: wrap;
+      }
+
+      .search {
+        width: 100%;
+        min-width: min(100%, 260px);
       }
 
       .shell {
@@ -1061,22 +1077,24 @@
 <body>
   <header class="topbar">
     <div class="topbar-inner">
-      <a class="brand" href="#">
-        <span class="brand-mark">导</span>
-        <span>
-          <span class="brand-title">我的导航</span>
-          <span class="brand-subtitle">个人书签中心</span>
-        </span>
-      </a>
+      <div class="brand-search">
+        <a class="brand" href="#">
+          <span class="brand-mark">导</span>
+          <span>
+            <span class="brand-title">我的导航</span>
+            <span class="brand-subtitle">个人书签中心</span>
+          </span>
+        </a>
 
-      <label class="search" for="searchInput">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="11" cy="11" r="7"></circle>
-          <path d="m20 20-3.5-3.5"></path>
-        </svg>
-        <input id="searchInput" type="search" autocomplete="off" placeholder="搜索书签、网站或关键词">
-        <span class="search-kbd">/</span>
-      </label>
+        <label class="search" for="searchInput">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="7"></circle>
+            <path d="m20 20-3.5-3.5"></path>
+          </svg>
+          <input id="searchInput" type="search" autocomplete="off" placeholder="搜索书签、网站或关键词">
+          <span class="search-kbd">/</span>
+        </label>
+      </div>
 
       <div class="actions">
         <form class="login-form" id="loginForm">
@@ -1475,6 +1493,7 @@
 
     function updateAuthUi() {
       loginForm.style.display = authState.authenticated ? "none" : "flex";
+      searchInput.closest(".search").style.display = authState.authenticated ? "block" : "none";
       tokenDisplay.style.display = authState.authenticated ? "inline-flex" : "none";
       tokenDisplay.textContent = `欢迎，${visibleToken()}`;
       editToggle.style.display = authState.authenticated ? "inline-flex" : "none";
