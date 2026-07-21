@@ -326,6 +326,7 @@
     </div>
   </section>
 
+  <script src="/config.js"></script>
   <script>
     const state = { tenants: [], role: "", tenant: null };
     const tokenInput = document.getElementById("tokenInput");
@@ -382,15 +383,17 @@
       `;
     }
 
+    const apiBaseUrl = String(window.HOME_CONFIG?.API_BASE_URL || "").replace(/\/+$/, "");
+    const apiUrl = (path) => `${apiBaseUrl}/api/${String(path).replace(/^\/+/, "")}`;
+
     async function api(path, options = {}) {
-      const response = await fetch(`/api/${path}`, {
+      const response = await fetch(apiUrl(path), {
         ...options,
         headers: {
           "content-type": "application/json",
           ...(token() ? { authorization: `Bearer ${token()}` } : {}),
           ...(options.headers || {}),
         },
-        credentials: "same-origin",
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) {
@@ -572,7 +575,7 @@
 
     loginBtn.addEventListener("click", () => login().catch((error) => setStatus(error.message, "bad")));
     logoutBtn.addEventListener("click", async () => {
-      await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" });
+      await fetch(apiUrl("auth/logout"), { method: "POST" });
       localStorage.removeItem("nav-visible-token");
       window.location.href = "/admin/";
     });
