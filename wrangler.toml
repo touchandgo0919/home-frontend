@@ -1,6 +1,10 @@
 name = "home-frontend"
+main = "src/index.js"
 compatibility_date = "2026-07-12"
-pages_build_output_dir = "dist"
+
+[vars]
+HOME_API_BASE_URL = ""
 
 [assets]
 directory = "./dist"
+binding = "STATIC_ASSETS"
