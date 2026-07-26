@@ -507,6 +507,7 @@
       state.tenant = body.tenant;
       await load();
       setStatus(body.role === "platform" ? "平台管理员已登录" : "租户已登录", "ok");
+      finishInitialLoad();
     }
 
     async function loadTenants() {
