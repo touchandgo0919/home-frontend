@@ -4,6 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>我的导航</title>
+  <script>
+    // 在样式首次绘制前恢复主题，避免页面跳转时先闪现浅色主题。
+    (() => {
+      try {
+        const savedTheme = localStorage.getItem("nav-theme");
+        const prefersDark = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
+        document.documentElement.dataset.theme = savedTheme || (prefersDark ? "dark" : "light");
+      } catch {}
+    })();
+  </script>
   <style>
     :root {
       color-scheme: light;
@@ -62,6 +72,24 @@
       line-height: 1.5;
       letter-spacing: 0;
       transition: background 180ms ease, color 180ms ease;
+    }
+
+    body[data-app-loading="true"] > * { visibility: hidden; }
+    body[data-app-loading="true"]::after {
+      position: fixed;
+      inset: 50% auto auto 50%;
+      width: 24px;
+      height: 24px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      content: "";
+      animation: app-loading-spin 700ms linear infinite;
+    }
+
+    @keyframes app-loading-spin {
+      from { transform: translate(-50%, -50%) rotate(0deg); }
+      to { transform: translate(-50%, -50%) rotate(360deg); }
     }
 
     a {
@@ -1082,7 +1110,7 @@
     }
   </style>
 </head>
-<body>
+<body data-app-loading="true" aria-busy="true">
   <header class="topbar">
     <div class="topbar-inner">
       <div class="brand-search">
@@ -1426,6 +1454,11 @@
     const faviconCacheKey = "nav-favicon-cache";
     const modalState = { type: "", id: "", categoryId: "" };
     let faviconCache = null;
+
+    function finishInitialLoad() {
+      document.body.removeAttribute("data-app-loading");
+      document.body.setAttribute("aria-busy", "false");
+    }
 
     function visibleToken() {
       return localStorage.getItem("nav-visible-token") || "";
@@ -2088,6 +2121,7 @@
           guestEmpty.style.display = "grid";
           updateSummary();
           updateAuthUi();
+          finishInitialLoad();
           return;
         }
         if (Array.isArray(payload.data)) {
@@ -2109,6 +2143,7 @@
         guestEmpty.style.display = "grid";
         updateSummary();
         updateAuthUi();
+        finishInitialLoad();
         return;
       }
 
@@ -2119,6 +2154,7 @@
       updateSummary();
       updateAuthUi();
       render("");
+      finishInitialLoad();
     }
 
     applyTheme(savedTheme || (prefersDark ? "dark" : "light"));

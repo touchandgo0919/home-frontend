@@ -4,6 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>导航管理</title>
+  <script>
+    // 在样式首次绘制前恢复主题，避免页面跳转时先闪现浅色主题。
+    (() => {
+      try {
+        const savedTheme = localStorage.getItem("nav-theme");
+        const prefersDark = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
+        document.documentElement.dataset.theme = savedTheme || (prefersDark ? "dark" : "light");
+      } catch {}
+    })();
+  </script>
   <style>
     :root {
       color-scheme: light;
@@ -39,6 +49,23 @@
 
     * { box-sizing: border-box; }
     body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--text); font-size: 14px; }
+    body[data-app-loading="true"] > * { visibility: hidden; }
+    body[data-app-loading="true"]::after {
+      position: fixed;
+      inset: 50% auto auto 50%;
+      width: 24px;
+      height: 24px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      content: "";
+      animation: app-loading-spin 700ms linear infinite;
+    }
+
+    @keyframes app-loading-spin {
+      from { transform: translate(-50%, -50%) rotate(0deg); }
+      to { transform: translate(-50%, -50%) rotate(360deg); }
+    }
     button, input, select { font: inherit; }
     button { cursor: pointer; }
 
@@ -276,7 +303,7 @@
     }
   </style>
 </head>
-<body>
+<body data-app-loading="true" aria-busy="true">
   <header class="topbar">
     <div class="brand">
       <span>导航管理</span>
@@ -353,6 +380,11 @@
     const savedTheme = localStorage.getItem("nav-theme");
 
     localStorage.removeItem("nav-admin-token");
+
+    function finishInitialLoad() {
+      document.body.removeAttribute("data-app-loading");
+      document.body.setAttribute("aria-busy", "false");
+    }
 
     function setStatus(text, kind = "") {
       statusEl.textContent = text;
@@ -449,6 +481,7 @@
       state.tenant = body.tenant;
       await load();
       setStatus(body.role === "platform" ? "平台管理员已登录" : "租户已登录", "ok");
+      finishInitialLoad();
     }
 
     async function restoreSession() {
@@ -618,7 +651,10 @@
     applyTheme(savedTheme || (prefersDark ? "dark" : "light"));
     resetTenantForm();
     render();
-    restoreSession().catch(() => setStatus("请输入 token"));
+    restoreSession().catch(() => {
+      setStatus("请输入 token");
+      finishInitialLoad();
+    });
   </script>
 </body>
 </html>
