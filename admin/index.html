@@ -436,6 +436,22 @@
 
     const apiBaseUrl = String(window.HOME_CONFIG?.API_BASE_URL || "").replace(/\/+$/, "");
     const apiUrl = (path) => `${apiBaseUrl}/api/${String(path).replace(/^\/+/, "")}`;
+    const requestTimeoutMs = 8000;
+
+    async function fetchWithTimeout(url, options = {}) {
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), requestTimeoutMs);
+      try {
+        return await fetch(url, { ...options, signal: controller.signal });
+      } catch (error) {
+        if (controller.signal.aborted) {
+          throw new Error("请求超时，请检查网络后重试。");
+        }
+        throw error;
+      } finally {
+        window.clearTimeout(timeoutId);
+      }
+    }
 
     async function api(path, options = {}) {
       if (!apiBaseUrl) {
@@ -445,7 +461,7 @@
         throw new Error("后端 API 地址仍是占位值，请配置 HOME_API_BASE_URL 后重新部署前端。");
       }
       const currentToken = authToken();
-      const response = await fetch(apiUrl(path), {
+      const response = await fetchWithTimeout(apiUrl(path), {
         ...options,
         headers: {
           "content-type": "application/json",
@@ -651,8 +667,8 @@
     applyTheme(savedTheme || (prefersDark ? "dark" : "light"));
     resetTenantForm();
     render();
-    restoreSession().catch(() => {
-      setStatus("请输入 token");
+    restoreSession().catch((error) => {
+      setStatus(error.message || "会话恢复失败，请重新登录", "bad");
       finishInitialLoad();
     });
   </script>

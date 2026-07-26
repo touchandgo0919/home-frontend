@@ -1515,6 +1515,22 @@
 
     const apiBaseUrl = String(window.HOME_CONFIG?.API_BASE_URL || "").replace(/\/+$/, "");
     const apiUrl = (path) => `${apiBaseUrl}/api/${String(path).replace(/^\/+/, "")}`;
+    const requestTimeoutMs = 8000;
+
+    async function fetchWithTimeout(url, options = {}) {
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), requestTimeoutMs);
+      try {
+        return await fetch(url, { ...options, signal: controller.signal });
+      } catch (error) {
+        if (controller.signal.aborted) {
+          throw new Error("请求超时，请检查网络后重试。");
+        }
+        throw error;
+      } finally {
+        window.clearTimeout(timeoutId);
+      }
+    }
 
     function setLoginStatus(message = "") {
       guestLoginStatus.textContent = message;
@@ -1522,7 +1538,7 @@
 
     async function api(path, options = {}) {
       const token = visibleToken();
-      const response = await fetch(apiUrl(path), {
+      const response = await fetchWithTimeout(apiUrl(path), {
         ...options,
         headers: {
           "content-type": "application/json",
@@ -2101,7 +2117,7 @@
     async function loadSiteData() {
       try {
         const token = visibleToken();
-        const response = await fetch(apiUrl("nav"), {
+        const response = await fetchWithTimeout(apiUrl("nav"), {
           headers: {
             accept: "application/json",
             ...(token ? { authorization: `Bearer ${token}` } : {}),
@@ -2175,7 +2191,7 @@
 
       let response;
       try {
-        response = await fetch(apiUrl("auth/token"), {
+        response = await fetchWithTimeout(apiUrl("auth/token"), {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ token }),
