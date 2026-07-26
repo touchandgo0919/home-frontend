@@ -187,6 +187,20 @@
     .handle { color: var(--muted); text-align: center; font-size: 18px; line-height: 1; }
     .title { overflow: hidden; font-weight: 760; text-overflow: ellipsis; white-space: nowrap; }
     .sub { overflow: hidden; color: var(--muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      margin-left: 7px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 720;
+      line-height: 20px;
+      padding: 0 7px;
+      vertical-align: middle;
+    }
+    .row.active .badge { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); color: var(--accent); }
     .row-actions { display: flex; gap: 6px; }
 
     .form {
@@ -340,10 +354,6 @@
 
     localStorage.removeItem("nav-admin-token");
 
-    function visibleToken() {
-      return localStorage.getItem("nav-visible-token") || token();
-    }
-
     function setStatus(text, kind = "") {
       statusEl.textContent = text;
       statusEl.className = `status ${kind}`;
@@ -351,6 +361,15 @@
 
     function token() {
       return tokenInput.value.trim();
+    }
+
+    // 首页登录后会将 token 保存在这里；管理页优先复用它，无需再次输入。
+    function authToken() {
+      return token() || localStorage.getItem("nav-visible-token") || "";
+    }
+
+    function visibleToken() {
+      return authToken();
     }
 
     function applyTheme(theme) {
@@ -393,11 +412,12 @@
       if (apiBaseUrl.includes("<your-account>")) {
         throw new Error("后端 API 地址仍是占位值，请配置 HOME_API_BASE_URL 后重新部署前端。");
       }
+      const currentToken = authToken();
       const response = await fetch(apiUrl(path), {
         ...options,
         headers: {
           "content-type": "application/json",
-          ...(token() ? { authorization: `Bearer ${token()}` } : {}),
+          ...(currentToken ? { authorization: `Bearer ${currentToken}` } : {}),
           ...(options.headers || {}),
         },
       });
@@ -424,7 +444,7 @@
         body: JSON.stringify({ token: token() }),
         headers: {},
       });
-      localStorage.setItem("nav-visible-token", token());
+      localStorage.setItem("nav-visible-token", authToken());
       state.role = body.role;
       state.tenant = body.tenant;
       await load();
@@ -501,7 +521,7 @@
       tenantForm.elements.slug.value = tenant.slug;
       tenantForm.elements.name.value = tenant.name;
       tenantForm.elements.admin_token.value = "";
-      tenantForm.elements.token_role.value = "admin";
+      tenantForm.elements.token_role.value = tenant.token_role || "admin";
     }
 
     function renderTenantAdmin() {
@@ -517,13 +537,17 @@
       const root = document.getElementById("tenantList");
       root.innerHTML = "";
       state.tenants.forEach((tenant) => {
+        const isCurrentTenant = state.tenant && tenant.slug === state.tenant.slug;
+        const roleLabel = tenant.token_role === "editor" ? "编辑者" : "管理员";
         const row = document.createElement("div");
-        row.className = `row ${state.tenant && tenant.slug === state.tenant.slug ? "active" : ""}`;
+        row.className = `row ${isCurrentTenant ? "active" : ""}`;
         row.dataset.id = tenant.id;
         row.innerHTML = `
           <span class="handle">#</span>
           <span>
             <span class="title">${escapeHtml(tenant.name)}</span>
+            <span class="badge">${roleLabel}</span>
+            ${isCurrentTenant ? '<span class="badge">当前登录租户</span>' : ""}
             <span class="sub">${escapeHtml(tenant.slug)}</span>
           </span>
           <span class="row-actions">
