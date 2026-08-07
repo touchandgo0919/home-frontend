@@ -1,6 +1,14 @@
-const configResponse = (env) =>
+const apiBaseUrlForRequest = (request, env) => {
+  const url = new URL(request.url);
+  if (url.hostname.startsWith("home.")) {
+    return `${url.protocol}//home-api.${url.hostname.slice("home.".length)}`;
+  }
+  return env.HOME_API_BASE_URL || "";
+};
+
+const configResponse = (request, env) =>
   new Response(
-    `window.HOME_CONFIG = ${JSON.stringify({ API_BASE_URL: env.HOME_API_BASE_URL || "" }, null, 2)};\n`,
+    `window.HOME_CONFIG = ${JSON.stringify({ API_BASE_URL: apiBaseUrlForRequest(request, env) }, null, 2)};\n`,
     {
       headers: {
         "content-type": "application/javascript; charset=utf-8",
@@ -14,7 +22,7 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname === "/config.js") {
-      return configResponse(env);
+      return configResponse(request, env);
     }
 
     if (url.pathname === "/admin") {

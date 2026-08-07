@@ -19,9 +19,16 @@ for (const item of copyItems) {
 }
 
 if (process.env.HOME_API_BASE_URL) {
+  const fallbackApiBaseUrl = process.env.HOME_API_BASE_URL;
   fs.writeFileSync(
     path.join(outDir, "config.js"),
-    `window.HOME_CONFIG = ${JSON.stringify({ API_BASE_URL: process.env.HOME_API_BASE_URL }, null, 2)};\n`
+    `(() => {
+  const hostname = window.location.hostname;
+  const apiBaseUrl = hostname.startsWith("home.")
+    ? \`${"${window.location.protocol}"}//home-api.${"${hostname.slice(\"home.\".length)}"}\`
+    : ${JSON.stringify(fallbackApiBaseUrl)};
+  window.HOME_CONFIG = { API_BASE_URL: apiBaseUrl };
+})();\n`
   );
 } else {
   const configSource = fs.existsSync("config.js") ? "config.js" : "config.example.js";
