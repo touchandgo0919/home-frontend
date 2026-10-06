@@ -1565,7 +1565,7 @@
 
     const apiBaseUrl = String(window.HOME_CONFIG?.API_BASE_URL || "").replace(/\/+$/, "");
     const apiUrl = (path) => `${apiBaseUrl}/api/${String(path).replace(/^\/+/, "")}`;
-    const requestTimeoutMs = 8000;
+    const requestTimeoutMs = 20000;
 
     async function fetchWithTimeout(url, options = {}) {
       const controller = new AbortController();

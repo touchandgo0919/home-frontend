@@ -16,11 +16,14 @@ Deploy to Cloudflare Workers:
 HOME_API_BASE_URL=https://home-backend.<your-account>.workers.dev npm run deploy
 ```
 
-On custom domains, the API address is derived automatically from the frontend
-hostname: `home.example.com` uses `home-api.example.com`. For local development
-or preview hostnames, create `config.js` from `config.example.js` and set the
-fallback API URL to the deployed Worker URL.
+For the production custom domain, run `../scripts/deploy-frontend.sh` from the
+parent repository so the Aliyun static copy is updated in the same release.
+
+On custom domains, the API address is derived from the frontend hostname:
+`home.example.com` uses `home-api.example.com`. This keeps requests on the
+domain's accessible entrypoint when `workers.dev` is unreachable. For local
+development or preview hostnames, set `HOME_API_BASE_URL` to the backend Worker.
 
 The frontend Worker serves static assets from `dist` and returns `/config.js`
-using the same hostname rule. `HOME_API_BASE_URL` remains the fallback for local
-and preview environments and can be configured in Cloudflare Settings.
+using the same hostname rule. `HOME_API_BASE_URL` is the fallback for local and
+preview environments and can be configured in Cloudflare Settings.
