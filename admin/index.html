@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>导航管理</title>
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
   <script>
     // 在样式首次绘制前恢复主题，避免页面跳转时先闪现浅色主题。
     (() => {
@@ -49,22 +50,31 @@
 
     * { box-sizing: border-box; }
     body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--text); font-size: 14px; }
-    body[data-app-loading="true"] > * { visibility: hidden; }
-    body[data-app-loading="true"]::after {
+    body[data-app-loading="true"] > :not(#appLoader) { visibility: hidden; }
+    #appLoader {
+      display: none;
       position: fixed;
-      inset: 50% auto auto 50%;
-      width: 24px;
-      height: 24px;
+      inset: 0;
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 14px;
+      background: var(--bg);
+      color: var(--muted);
+    }
+    body[data-app-loading="true"] #appLoader { display: flex; }
+    .app-spinner {
+      width: 32px;
+      height: 32px;
       border: 3px solid var(--border);
       border-top-color: var(--accent);
       border-radius: 50%;
-      content: "";
       animation: app-loading-spin 700ms linear infinite;
     }
 
     @keyframes app-loading-spin {
-      from { transform: translate(-50%, -50%) rotate(0deg); }
-      to { transform: translate(-50%, -50%) rotate(360deg); }
+      to { transform: rotate(360deg); }
     }
     button, input, select { font: inherit; }
     button { cursor: pointer; }
@@ -304,6 +314,10 @@
   </style>
 </head>
 <body data-app-loading="true" aria-busy="true">
+  <div id="appLoader" role="status" aria-live="polite">
+    <span class="app-spinner" aria-hidden="true"></span>
+    <span id="appLoadingText">正在恢复登录…</span>
+  </div>
   <header class="topbar">
     <div class="brand">
       <span>导航管理</span>
@@ -378,12 +392,32 @@
     const tenantForm = document.getElementById("tenantForm");
     const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
     const savedTheme = localStorage.getItem("nav-theme");
+    const tokenExpiryKey = "nav-token-expires-at";
 
     localStorage.removeItem("nav-admin-token");
 
     function finishInitialLoad() {
       document.body.removeAttribute("data-app-loading");
       document.body.setAttribute("aria-busy", "false");
+    }
+
+    function startLoading(message) {
+      document.getElementById("appLoadingText").textContent = message;
+      document.body.setAttribute("data-app-loading", "true");
+      document.body.setAttribute("aria-busy", "true");
+    }
+
+    function clearVisibleToken() {
+      localStorage.removeItem("nav-visible-token");
+      localStorage.removeItem(tokenExpiryKey);
+      localStorage.removeItem("nav-cached-data");
+    }
+
+    function saveVisibleToken(value) {
+      const expiry = new Date();
+      expiry.setFullYear(expiry.getFullYear() + 99);
+      localStorage.setItem("nav-visible-token", value);
+      localStorage.setItem(tokenExpiryKey, String(expiry.getTime()));
     }
 
     function setStatus(text, kind = "") {
@@ -397,11 +431,24 @@
 
     // 首页登录后会将 token 保存在这里；管理页优先复用它，无需再次输入。
     function authToken() {
-      return token() || localStorage.getItem("nav-visible-token") || "";
+      return token() || visibleToken();
     }
 
     function visibleToken() {
-      return authToken();
+      const value = localStorage.getItem("nav-visible-token") || "";
+      if (!value) return "";
+      let expiresAt = Number(localStorage.getItem(tokenExpiryKey));
+      if (!expiresAt) {
+        const expiry = new Date();
+        expiry.setFullYear(expiry.getFullYear() + 99);
+        expiresAt = expiry.getTime();
+        localStorage.setItem(tokenExpiryKey, String(expiresAt));
+      }
+      if (Date.now() >= expiresAt) {
+        clearVisibleToken();
+        return "";
+      }
+      return value;
     }
 
     function applyTheme(theme) {
@@ -471,7 +518,9 @@
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(body.error || "请求失败");
+        const error = new Error(body.error || "请求失败");
+        error.status = response.status;
+        throw error;
       }
       return body;
     }
@@ -486,13 +535,17 @@
     }
 
     async function login() {
+      startLoading("正在登录…");
       setStatus("登录中");
       const body = await api("auth/token", {
         method: "POST",
         body: JSON.stringify({ token: token() }),
         headers: {},
       });
-      localStorage.setItem("nav-visible-token", authToken());
+      const loggedInToken = token();
+      clearVisibleToken();
+      saveVisibleToken(loggedInToken);
+      tokenInput.value = "";
       state.role = body.role;
       state.tenant = body.tenant;
       await load();
@@ -501,6 +554,10 @@
     }
 
     async function restoreSession() {
+      if (!visibleToken()) {
+        finishInitialLoad();
+        return;
+      }
       setStatus("恢复会话");
       const body = await api("auth/session");
       state.role = body.role;
@@ -528,7 +585,7 @@
       logoutBtn.style.display = loggedIn ? "" : "none";
       statusEl.style.display = loggedIn ? "none" : "";
       tokenDisplay.style.display = loggedIn ? "inline-flex" : "none";
-      tokenDisplay.textContent = loggedIn ? `欢迎，${visibleToken()}` : "";
+      tokenDisplay.textContent = loggedIn ? `欢迎，${state.tenant?.name || "已登录"}` : "";
     }
 
     async function copyText(value) {
@@ -653,10 +710,13 @@
       await load();
     });
 
-    loginBtn.addEventListener("click", () => login().catch((error) => setStatus(error.message, "bad")));
+    loginBtn.addEventListener("click", () => login().catch((error) => {
+      finishInitialLoad();
+      setStatus(error.message, "bad");
+    }));
     logoutBtn.addEventListener("click", async () => {
       await fetch(apiUrl("auth/logout"), { method: "POST" });
-      localStorage.removeItem("nav-visible-token");
+      clearVisibleToken();
       window.location.href = "/admin/";
     });
     document.getElementById("resetTenantBtn").addEventListener("click", resetTenantForm);
@@ -669,6 +729,7 @@
     resetTenantForm();
     render();
     restoreSession().catch((error) => {
+      if (error.status === 401) clearVisibleToken();
       setStatus(error.message || "会话恢复失败，请重新登录", "bad");
       finishInitialLoad();
     });
