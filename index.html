@@ -1141,6 +1141,8 @@
       }
     }
   </style>
+<link rel="stylesheet" href="/assets/css/data-tools.css">
+<script src="/assets/js/i18n.js"></script>
 </head>
 <body data-app-loading="true" aria-busy="true">
   <div id="appLoader" role="status" aria-live="polite">
@@ -1177,6 +1179,8 @@
         <a class="admin-link" id="adminLink" href="/admin/" aria-label="进入管理后台">管理</a>
         <span class="token-chip" id="tokenDisplay"></span>
         <button class="inline-action" id="copyTokenBtn" type="button">复制 Token</button>
+        <button class="inline-action" id="dataToolsBtn" type="button">数据与备份</button>
+        <select id="siteLanguage" class="language-select" aria-label="Language"><option value="zh">中文</option><option value="en">English</option></select>
         <button class="inline-action danger" id="logoutBtn" type="button">登出</button>
         <button class="theme-toggle" id="themeToggle" type="button" aria-label="切换深色浅色模式">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1228,7 +1232,7 @@
     </div>
   </div>
 
-  <footer class="footer">Hosted on Cloudflare Pages</footer>
+  <footer class="footer"><span class="help-links"><a href="/help/">使用帮助</a><a href="/privacy/">隐私政策</a></span>Powered by Cloudflare</footer>
 
   <div class="modal" id="editModal" aria-hidden="true">
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
@@ -1642,6 +1646,7 @@
       editToggle.style.display = authState.authenticated ? "inline-flex" : "none";
       editToggle.textContent = authState.editMode ? "保存" : "编辑";
       adminLink.style.display = authState.authenticated && canManageSystem() ? "inline-flex" : "none";
+      document.getElementById("dataToolsBtn").style.display = authState.authenticated ? "inline-flex" : "none";
       logoutBtn.style.display = authState.authenticated ? "inline-flex" : "none";
       document.body.dataset.editing = authState.authenticated && authState.editMode ? "true" : "false";
     }
@@ -2133,15 +2138,17 @@
 
     async function deleteCategory(categoryId) {
       const category = findCategory(categoryId);
-      if (!category || !confirm(`删除分组「${category.category}」及其中书签？`)) return;
-      await api(`categories/${categoryId}`, { method: "DELETE" });
+      if (!category || !confirm(`将分组「${category.category}」及其中书签移入回收站？`)) return;
+      const result = await api(`categories/${categoryId}`, { method: "DELETE" });
+      window.NavTools.offerUndo(result.undo);
       await loadSiteData();
     }
 
     async function deleteBookmark(bookmarkId) {
       const found = findBookmark(bookmarkId);
-      if (!found || !confirm(`删除书签「${found.bookmark.title}」？`)) return;
-      await api(`bookmarks/${bookmarkId}`, { method: "DELETE" });
+      if (!found || !confirm(`将书签「${found.bookmark.title}」移入回收站？`)) return;
+      const result = await api(`bookmarks/${bookmarkId}`, { method: "DELETE" });
+      window.NavTools.offerUndo(result.undo);
       await loadSiteData();
     }
 
@@ -2417,8 +2424,10 @@
       const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
       applyTheme(nextTheme);
     });
+    window.homeApp = { api, reload: loadSiteData, role: () => authState.role };
     window.addEventListener("scroll", updateActiveNav, { passive: true });
     window.addEventListener("resize", syncSidebarOffset, { passive: true });
   </script>
+  <script src="/assets/js/data-tools.js"></script>
 </body>
 </html>

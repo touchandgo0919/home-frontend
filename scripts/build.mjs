@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const outDir = "dist";
-const copyItems = ["index.html", "admin", "assets"];
+const copyItems = ["index.html", "admin", "assets", "help", "privacy"];
 
 fs.rmSync(outDir, { recursive: true, force: true });
 fs.mkdirSync(outDir, { recursive: true });
