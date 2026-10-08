@@ -527,7 +527,7 @@
 
     async function load() {
       setStatus("加载中");
-      if (["platform", "admin"].includes(state.role)) {
+      if (state.role === "platform") {
         await loadTenants();
       }
       render();
@@ -634,7 +634,7 @@
     function renderTenantAdmin() {
       const panel = document.getElementById("tenantAdmin");
       const emptyPanel = document.getElementById("permissionEmpty");
-      const canManageTenant = ["platform", "admin"].includes(state.role);
+      const canManageTenant = state.role === "platform";
       panel.style.display = canManageTenant ? "" : "none";
       emptyPanel.style.display = state.role && !canManageTenant ? "" : "none";
       if (!canManageTenant) return;

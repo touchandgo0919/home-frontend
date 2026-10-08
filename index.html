@@ -1604,7 +1604,7 @@
     }
 
     function canManageSystem() {
-      return ["platform", "admin"].includes(authState.role);
+      return authState.role === "platform";
     }
 
     function updateAuthUi() {
