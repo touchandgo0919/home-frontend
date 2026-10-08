@@ -345,6 +345,22 @@
       color: #d92d20;
     }
 
+    .copy-feedback {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      width: max-content;
+      max-width: calc(100vw - 28px);
+      padding: 12px 18px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--text);
+      box-shadow: 0 8px 30px #0002;
+    }
+
     .edit-hint {
       display: none;
       border: 1px solid var(--border);
@@ -1018,6 +1034,11 @@
     }
 
     @media (max-width: 960px) {
+      .actions {
+        grid-column: 1 / -1;
+        flex-wrap: wrap;
+      }
+
       .topbar-inner {
         grid-template-columns: 1fr auto;
       }
@@ -1155,6 +1176,7 @@
         <button class="inline-action primary" id="editToggle" type="button">编辑</button>
         <a class="admin-link" id="adminLink" href="/admin/" aria-label="进入管理后台">管理</a>
         <span class="token-chip" id="tokenDisplay"></span>
+        <button class="inline-action" id="copyTokenBtn" type="button">复制 Token</button>
         <button class="inline-action danger" id="logoutBtn" type="button">登出</button>
         <button class="theme-toggle" id="themeToggle" type="button" aria-label="切换深色浅色模式">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1170,6 +1192,7 @@
     </div>
   </header>
 
+  <div class="copy-feedback" id="copyTokenStatus" role="status" aria-live="polite" hidden></div>
   <div class="shell">
     <aside class="sidebar">
       <div class="sidebar-head">
@@ -1455,6 +1478,9 @@
     const shell = document.querySelector(".shell");
     const loginForm = document.getElementById("loginForm");
     const tokenDisplay = document.getElementById("tokenDisplay");
+    const copyTokenBtn = document.getElementById("copyTokenBtn");
+    const copyTokenStatus = document.getElementById("copyTokenStatus");
+    let copyFeedbackTimer;
     const editToggle = document.getElementById("editToggle");
     const adminLink = document.getElementById("adminLink");
     const logoutBtn = document.getElementById("logoutBtn");
@@ -1612,6 +1638,7 @@
       searchInput.closest(".search").style.display = authState.authenticated ? "block" : "none";
       tokenDisplay.style.display = authState.authenticated ? "inline-flex" : "none";
       tokenDisplay.textContent = authState.authenticated ? `欢迎，${authState.tenant?.name || "已登录"}` : "";
+      copyTokenBtn.style.display = authState.authenticated ? "inline-flex" : "none";
       editToggle.style.display = authState.authenticated ? "inline-flex" : "none";
       editToggle.textContent = authState.editMode ? "保存" : "编辑";
       adminLink.style.display = authState.authenticated && canManageSystem() ? "inline-flex" : "none";
@@ -2347,6 +2374,38 @@
         }
       } catch (error) {
         alert(error.message || "保存失败");
+      }
+    });
+    copyTokenBtn.addEventListener("click", async () => {
+      const token = visibleToken();
+      clearTimeout(copyFeedbackTimer);
+      copyTokenBtn.disabled = true;
+      try {
+        if (!authState.authenticated || !token) throw new Error("登录凭据已失效，请重新登录。");
+        try {
+          await navigator.clipboard.writeText(token);
+        } catch {
+          // Support browsers that deny the asynchronous clipboard API.
+          const input = document.createElement("textarea");
+          input.value = token;
+          input.readOnly = true;
+          input.style.cssText = "position:fixed;left:-9999px;top:0";
+          document.body.append(input);
+          try {
+            input.select();
+            if (!document.execCommand("copy")) throw new Error("复制失败，请允许浏览器使用剪贴板后重试。");
+          } finally {
+            input.remove();
+          }
+        }
+        copyTokenStatus.textContent = "Token 已复制，请妥善保存。";
+      } catch (error) {
+        copyTokenStatus.textContent = error.message || "复制失败，请重试。";
+      } finally {
+        copyTokenBtn.disabled = false;
+        copyTokenBtn.focus({ preventScroll: true });
+        copyTokenStatus.hidden = false;
+        copyFeedbackTimer = setTimeout(() => { copyTokenStatus.hidden = true; }, 3500);
       }
     });
     logoutBtn.addEventListener("click", async () => {
