@@ -9,6 +9,54 @@
  const tabs=el('div',undefined,{className:'data-tabs'}),body=el('div',undefined,{className:'data-body'}),status=el('p','',{className:'data-status'});status.setAttribute('role','status');
  dialog.append(head,tabs,body,loading,status);document.body.append(dialog);
  let busy=false;const app=()=>window.homeApp;
+ const backupCacheKey='nav-backup-list-v1',backupCacheTtl=5*60*1000;
+ let backupScope='',backupList=null,backupRequest=null;
+ const backupSnapshots=new Map();
+ const currentToken=()=>localStorage.getItem('nav-visible-token')||'';
+ function syncBackupScope(){
+  const token=currentToken();
+  if(token!==backupScope){backupScope=token;backupList=null;backupRequest=null;backupSnapshots.clear();}
+  return token;
+ }
+ function cachedBackupList(){
+  const token=syncBackupScope();
+  if(!token)return null;
+  if(backupList&&Date.now()-backupList.savedAt<backupCacheTtl)return backupList.data;
+  try{
+   const saved=JSON.parse(sessionStorage.getItem(backupCacheKey)||'null');
+   if(saved?.token===token&&Date.now()-saved.savedAt<backupCacheTtl&&Array.isArray(saved.data?.data)){
+    backupList=saved;return saved.data;
+   }
+  }catch{}
+  return null;
+ }
+ function getBackupList(force=false){
+  const token=syncBackupScope();
+  if(force){backupList=null;try{sessionStorage.removeItem(backupCacheKey);}catch{}}
+  else{const cached=cachedBackupList();if(cached)return Promise.resolve(cached);}
+  if(backupRequest)return backupRequest;
+  const request=api('backups').then(data=>{
+   if(currentToken()!==token)throw new Error(L('账号已切换，请重试。','Account changed. Please retry.'));
+   const saved={token,savedAt:Date.now(),data};backupList=saved;
+   try{sessionStorage.setItem(backupCacheKey,JSON.stringify(saved));}catch{}
+   return data;
+  });
+  const wrapped=request.finally(()=>{if(backupRequest===wrapped)backupRequest=null;});
+  backupRequest=wrapped;
+  return wrapped;
+ }
+ function getBackupSnapshot(id){
+  syncBackupScope();
+  if(!backupSnapshots.has(id)){
+   const token=backupScope;
+   const request=api('backups/'+id).then(data=>{
+    if(currentToken()!==token)throw new Error(L('账号已切换，请重试。','Account changed. Please retry.'));
+    return data;
+   }).catch(error=>{backupSnapshots.delete(id);throw error;});
+   backupSnapshots.set(id,request);
+  }
+  return backupSnapshots.get(id);
+ }
  const run=async(fn,trigger)=>{
   if(busy)return;
   busy=true;status.textContent='';dialog.setAttribute('aria-busy','true');
@@ -68,12 +116,13 @@
   for(const [type,items] of [['categories',data.categories],['bookmarks',data.bookmarks]])for(const item of items){const row=el('div',undefined,{className:'data-row'});row.append(el('span',(type==='categories'?L('分组：','Collection: '):'')+(item.name||item.title)),el('small',new Date(item.deleted_at).toLocaleDateString()),button(L('恢复','Restore'),async()=>{await api('trash/restore',{type,id:item.id});await app().reload();await trash();status.textContent=L('已恢复。','Restored.');}));body.append(row);}
   if(!data.categories.length&&!data.bookmarks.length)notice(L('回收站为空。','Trash is empty.'));status.textContent='';
  }
- async function backups(){reset();notice(L('每天北京时间 03:00 自动备份，保留 35 天。恢复前可预览，并只合并当前账号的数据。','Daily backups at 03:00 Asia/Shanghai, retained for 35 days. Preview and merge only your account’s data.'));
-  const data=await api('backups');
-  if(app().role()==='platform')body.append(button(L('立即备份','Back up now'),async()=>{await api('backups/run',{});await backups();status.textContent=L('备份完成。','Backup completed.');}));
+ async function backups(force=false){reset();notice(L('每天北京时间 03:00 自动备份，保留 35 天。恢复前可预览，并只合并当前账号的数据。','Daily backups at 03:00 Asia/Shanghai, retained for 35 days. Preview and merge only your account’s data.'));
+  const data=await getBackupList(force);
+  body.append(button(L('刷新','Refresh'),async()=>{await backups(true);status.textContent=L('已更新。','Updated.');}));
+  if(app().role()==='platform')body.append(button(L('立即备份','Back up now'),async()=>{await api('backups/run',{});await backups(true);status.textContent=L('备份完成。','Backup completed.');}));
   if(!data.data.length)notice(L('尚无备份记录。','No backups yet.'));
   for(const item of data.data){const row=el('div',undefined,{className:'data-row'});row.append(el('span',new Date(item.created_at).toLocaleString()),el('small',item.status==='success'?L('成功','Success'):L('失败','Failed')));
-   if(item.status==='success')row.append(button(L('预览恢复','Preview recovery'),async()=>importEditor(await api('backups/'+item.id),true)),button(L('下载','Download'),async()=>{download(JSON.stringify(await api('backups/'+item.id),null,2),'navigation-backup.json','application/json');status.textContent=L('备份已下载。','Backup downloaded.');}));body.append(row);
+   if(item.status==='success')row.append(button(L('预览恢复','Preview recovery'),async()=>importEditor(await getBackupSnapshot(item.id),true)),button(L('下载','Download'),async()=>{download(JSON.stringify(await getBackupSnapshot(item.id),null,2),'navigation-backup.json','application/json');status.textContent=L('备份已下载。','Backup downloaded.');}));body.append(row);
   }status.textContent='';
  }
  async function support(){
@@ -88,7 +137,12 @@
   body.append(card);
  }
  for(const [name,fn] of [[L('导出','Export'),exports],[L('导入','Import'),imports],[L('回收站','Trash'),trash],[L('自动备份','Backups'),backups],[L('Pro 整理','Pro tools'),async()=>{reset();await window.NavPro.render(body,status);}] ,[L('赞赏','Support'),support]])tabs.append(button(name,fn));
- document.getElementById('dataToolsBtn').onclick=()=>{dialog.showModal();run(exports);};
+ const dataToolsBtn=document.getElementById('dataToolsBtn');
+ const prefetchBackups=()=>{if(currentToken())getBackupList().catch(()=>{});};
+ dataToolsBtn.addEventListener('pointerenter',prefetchBackups,{once:true});
+ dataToolsBtn.addEventListener('focus',prefetchBackups,{once:true});
+ setTimeout(prefetchBackups,500);
+ dataToolsBtn.onclick=()=>{prefetchBackups();dialog.showModal();run(exports);};
  const undo=el('div',undefined,{className:'undo-notice',hidden:true});undo.setAttribute('role','status');document.body.append(undo);let undoTimer;
  window.NavTools={offerUndo(item){clearTimeout(undoTimer);undo.replaceChildren(el('span',L('已移入回收站。','Moved to Trash.')),button(L('撤销','Undo'),async()=>{await api('trash/restore',item);undo.hidden=true;await app().reload();}));undo.hidden=false;undoTimer=setTimeout(()=>undo.hidden=true,10000);}};
 })();
