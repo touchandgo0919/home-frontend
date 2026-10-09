@@ -1,4 +1,5 @@
-.data-dialog{width:min(760px,calc(100vw - 28px));max-height:85vh;border:1px solid var(--border);border-radius:16px;background:var(--surface);color:var(--text);padding:24px}.data-dialog::backdrop{background:#07132988}.data-head{display:flex;align-items:center;justify-content:space-between;gap:20px}.data-head h2{margin:0;font-size:22px}.data-dialog button{padding:9px 13px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;cursor:pointer;font:inherit}.data-dialog button:disabled{opacity:.5;cursor:default}.data-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:20px 0}.data-tabs button:hover{color:var(--accent);border-color:var(--accent)}.data-body p{line-height:1.7;color:var(--muted)}.data-body>button{margin:6px 8px 6px 0}.data-row{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--border);flex-wrap:wrap}.data-row>span{flex:1;min-width:140px;overflow-wrap:anywhere}.data-row small{color:var(--muted)}.data-status{color:var(--accent);line-height:1.6}.data-mapping{max-height:260px;overflow:auto}.data-mapping label{display:flex;align-items:center;gap:12px;margin:10px 0}.data-mapping input{min-width:0;flex:1;border:1px solid var(--border);border-radius:8px;padding:10px;background:var(--surface);color:var(--text)}.undo-notice{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:12px 20px;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:0 4px 20px #0003;z-index:1100;max-width:95vw;white-space:nowrap}.undo-notice button{margin-left:16px;color:var(--accent);background:none;border:0;cursor:pointer}/* Keep the brand, search and account controls on one row. Search takes spare space. */
+.data-dialog{width:min(760px,calc(100vw - 28px));max-height:85vh;border:1px solid var(--border);border-radius:16px;background:var(--surface);color:var(--text);padding:24px}.data-dialog::backdrop{background:#07132988}.data-head{display:flex;align-items:center;justify-content:space-between;gap:20px}.data-head h2{margin:0;font-size:22px}.data-dialog button{padding:9px 13px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;cursor:pointer;font:inherit}.data-dialog button:disabled{opacity:.5;cursor:default}.data-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:20px 0}.data-tabs button:hover{color:var(--accent);border-color:var(--accent)}.data-body p{line-height:1.7;color:var(--muted)}.data-body>button{margin:6px 8px 6px 0}.data-row{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--border);flex-wrap:wrap}.data-row>span{flex:1;min-width:140px;overflow-wrap:anywhere}.data-row small{color:var(--muted)}.data-status{color:var(--accent);line-height:1.6}.data-mapping{max-height:260px;overflow:auto}.data-mapping label{display:flex;align-items:center;gap:12px;margin:10px 0}.data-mapping input{min-width:0;flex:1;border:1px solid var(--border);border-radius:8px;padding:10px;background:var(--surface);color:var(--text)}.undo-notice{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:12px 20px;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:0 4px 20px #0003;z-index:1100;max-width:95vw;white-space:nowrap}.undo-notice button{margin-left:16px;color:var(--accent);background:none;border:0;cursor:pointer}
+/* Keep the brand, search and account controls on one row. Search takes spare space. */
 .topbar-inner{display:flex;flex-wrap:nowrap;gap:clamp(8px,1.2vw,18px);max-width:none;padding:12px clamp(12px,1.8vw,24px)}
 .brand-search{flex:1 1 auto;min-width:0;flex-wrap:nowrap;gap:clamp(8px,1.2vw,18px)}
 .brand{min-width:0}
@@ -6,10 +7,13 @@
 .brand-search .search input{min-width:0;text-overflow:ellipsis}
 .actions{flex:0 0 auto;min-width:0;grid-column:auto;flex-wrap:nowrap;gap:8px;white-space:nowrap}
 .actions>*{flex-shrink:0}
-.actions .token-chip{max-width:clamp(112px,15vw,190px);min-width:0;gap:7px;cursor:pointer;font-weight:600}
+.actions .token-chip{width:clamp(168px,18vw,220px);max-width:220px;min-width:0;gap:7px;cursor:pointer;font-weight:600;justify-content:space-between}
 .token-chip:hover{border-color:var(--accent);color:var(--accent)}
 .token-chip span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.token-chip svg{width:15px;height:15px;flex:none}
+.token-chip svg{width:17px;height:17px;flex:none}
+.compact-action{display:none;align-items:center;justify-content:center;height:36px;padding:0 11px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--muted);font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.compact-action:hover{border-color:var(--accent);color:var(--accent)}
+.actions .admin-link{height:36px;min-width:0;padding-inline:11px;font-size:13px}
 .language-switch{height:40px;min-width:42px;padding:0 9px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--muted);font:inherit;font-weight:760;cursor:pointer}
 .language-switch:hover{border-color:var(--accent);color:var(--accent)}
 .help-links{display:inline-flex;gap:12px;margin-right:15px}
@@ -19,7 +23,7 @@
  .brand-subtitle{display:none}
  .brand-search .search{flex-basis:40px}
  .actions{flex:0 1 auto;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;max-width:calc(100vw - 180px);justify-content:flex-start}
- .actions .token-chip{max-width:135px}
+ .actions .token-chip{width:168px;max-width:168px}
 }
 @media(max-width:540px){
  .topbar-inner{padding-inline:10px}

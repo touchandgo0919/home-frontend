@@ -1178,9 +1178,10 @@
           <span id="tokenDisplay"></span>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2"></rect><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path></svg>
         </button>
-        <button class="inline-action primary" id="editToggle" type="button">编辑</button>
-        <button class="inline-action" id="dataToolsBtn" type="button">数据与备份</button>
+        <button class="compact-action" id="dataToolsBtn" type="button">数据</button>
+        <button class="compact-action" id="backupToolsBtn" type="button">备份</button>
         <a class="admin-link" id="adminLink" href="/admin/" aria-label="进入管理后台">管理</a>
+        <button class="inline-action primary" id="editToggle" type="button">编辑</button>
         <button class="inline-action danger" id="logoutBtn" type="button">登出</button>
         <button id="siteLanguage" class="language-switch" type="button" aria-label="Switch to English" title="Switch to English">EN</button>
         <button class="theme-toggle" id="themeToggle" type="button" aria-label="切换深色浅色模式">
@@ -1649,6 +1650,7 @@
       editToggle.textContent = authState.editMode ? "保存" : "编辑";
       adminLink.style.display = authState.authenticated && canManageSystem() ? "inline-flex" : "none";
       document.getElementById("dataToolsBtn").style.display = authState.authenticated ? "inline-flex" : "none";
+      document.getElementById("backupToolsBtn").style.display = authState.authenticated ? "inline-flex" : "none";
       logoutBtn.style.display = authState.authenticated ? "inline-flex" : "none";
       document.body.dataset.editing = authState.authenticated && authState.editMode ? "true" : "false";
     }
