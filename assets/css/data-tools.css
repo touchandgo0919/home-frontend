@@ -35,3 +35,8 @@
  .actions{max-width:calc(100vw - 106px)}
  .actions .login-form input{width:110px}
 }
+.data-head .data-loading{display:inline-flex;align-items:center;gap:8px;margin-left:auto;color:var(--accent);font-size:13px;white-space:nowrap}
+.data-head .data-loading[hidden]{display:none}
+.data-loading::before{content:"";width:15px;height:15px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:data-loading-spin .7s linear infinite}
+.data-dialog button[aria-busy="true"]{cursor:progress;opacity:.7}
+@keyframes data-loading-spin{to{transform:rotate(360deg)}}

@@ -3,14 +3,23 @@
  const L=(zh,en)=>lang==='zh'?zh:en;
  const el=(tag,text,props={})=>Object.assign(document.createElement(tag),{...(text!==undefined?{textContent:text}:{}),...props});
  const dialog=el('dialog',undefined,{id:'dataDialog',className:'data-dialog'});
- const head=el('div',undefined,{className:'data-head'}),title=el('h2',L('数据与备份','Data & backups')),close=el('button','×',{type:'button'});
- close.setAttribute('aria-label',L('关闭','Close'));close.onclick=()=>dialog.close();head.append(title,close);
+ const head=el('div',undefined,{className:'data-head'}),title=el('h2',L('数据与备份','Data & backups')),loading=el('span',L('正在加载…','Loading…'),{className:'data-loading',hidden:true}),close=el('button','×',{type:'button'});
+ loading.setAttribute('role','status');loading.setAttribute('aria-live','polite');
+ close.setAttribute('aria-label',L('关闭','Close'));close.onclick=()=>dialog.close();head.append(title,loading,close);
  const tabs=el('div',undefined,{className:'data-tabs'}),body=el('div',undefined,{className:'data-body'}),status=el('p','',{className:'data-status'});status.setAttribute('role','status');
  dialog.append(head,tabs,body,status);document.body.append(dialog);
  let busy=false;const app=()=>window.homeApp;
- const run=async(fn)=>{if(busy)return;busy=true;status.textContent=L('处理中…','Working…');dialog.setAttribute('aria-busy','true');try{await fn();}catch(e){status.textContent=window.HomeI18n?.translate(e.message)||e.message;}finally{busy=false;dialog.removeAttribute('aria-busy');}};
+ const run=async(fn,trigger)=>{
+  if(busy)return;
+  busy=true;status.textContent=L('处理中…','Working…');dialog.setAttribute('aria-busy','true');
+  trigger?.setAttribute('aria-busy','true');
+  const spinnerTimer=setTimeout(()=>{if(busy)loading.hidden=false;},120);
+  try{await fn();}
+  catch(e){status.textContent=window.HomeI18n?.translate(e.message)||e.message;}
+  finally{clearTimeout(spinnerTimer);loading.hidden=true;trigger?.removeAttribute('aria-busy');busy=false;dialog.removeAttribute('aria-busy');}
+ };
  const api=(path,data)=>app().api(path,data===undefined?{}:{method:'POST',body:JSON.stringify(data)});
- const button=(label,fn)=>{const b=el('button',label,{type:'button'});b.onclick=()=>run(fn);return b;};
+ const button=(label,fn)=>{const b=el('button',label,{type:'button'});b.onclick=()=>run(fn,b);return b;};
  const notice=text=>body.append(el('p',text));
  const reset=()=>{body.replaceChildren();status.textContent='';};
  function download(value,filename,type){const url=URL.createObjectURL(new Blob([value],{type})),a=el('a',undefined,{href:url,download:filename});a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
