@@ -5,13 +5,13 @@
  const dialog=el('dialog',undefined,{id:'dataDialog',className:'data-dialog'});
  const head=el('div',undefined,{className:'data-head'}),title=el('h2',L('数据与备份','Data & backups')),loading=el('span',L('正在加载…','Loading…'),{className:'data-loading',hidden:true}),close=el('button','×',{type:'button'});
  loading.setAttribute('role','status');loading.setAttribute('aria-live','polite');
- close.setAttribute('aria-label',L('关闭','Close'));close.onclick=()=>dialog.close();head.append(title,loading,close);
+ close.setAttribute('aria-label',L('关闭','Close'));close.onclick=()=>dialog.close();head.append(title,close);
  const tabs=el('div',undefined,{className:'data-tabs'}),body=el('div',undefined,{className:'data-body'}),status=el('p','',{className:'data-status'});status.setAttribute('role','status');
- dialog.append(head,tabs,body,status);document.body.append(dialog);
+ dialog.append(head,tabs,body,loading,status);document.body.append(dialog);
  let busy=false;const app=()=>window.homeApp;
  const run=async(fn,trigger)=>{
   if(busy)return;
-  busy=true;status.textContent=L('处理中…','Working…');dialog.setAttribute('aria-busy','true');
+  busy=true;status.textContent='';dialog.setAttribute('aria-busy','true');
   trigger?.setAttribute('aria-busy','true');
   const spinnerTimer=setTimeout(()=>{if(busy)loading.hidden=false;},120);
   try{await fn();}
