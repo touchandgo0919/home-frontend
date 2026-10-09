@@ -73,11 +73,9 @@
   card.append(el('h3',L('赞赏支持','Support this project')));
   card.append(el('p',L('如果我的导航对你有帮助，可以自愿使用微信赞赏码支持维护。赞赏不会开通 Pro，也不属于购买服务。','If My Navigation helps you, you can support its maintenance with this WeChat appreciation code. A contribution does not activate Pro or purchase a service.')));
   const image=el('img',undefined,{src:'/assets/donation/wechat-appreciation.jpg?v=20261009',alt:L('赵涛的微信赞赏码','Zhao Tao’s WeChat appreciation code'),loading:'lazy',width:1152,height:1152});
-  const link=el('a',undefined,{href:image.src,target:'_blank',rel:'noopener',className:'support-image-link'});
-  link.setAttribute('aria-label',L('打开原尺寸微信赞赏码','Open the full-size WeChat appreciation code'));
-  link.append(image);card.append(link);
-  card.append(el('p',L('电脑上用手机微信扫一扫；手机上点击图片打开原图，再用微信识别。','Scan with WeChat on another device. On a phone, open the full-size image and recognize it in WeChat.')));
-  card.append(el('a',L('打开原图','Open full-size image'),{href:image.src,target:'_blank',rel:'noopener',className:'support-full-link'}));
+  const crop=el('div',undefined,{className:'support-qr'});
+  crop.append(image);card.append(crop);
+  card.append(el('p',L('电脑上用手机微信扫一扫；手机上可截图后在微信中识别。','Scan with WeChat on another device. On a phone, take a screenshot and recognize it in WeChat.')));
   body.append(card);
  }
  for(const [name,fn] of [[L('导出','Export'),exports],[L('导入','Import'),imports],[L('回收站','Trash'),trash],[L('自动备份','Backups'),backups],[L('Pro 整理','Pro tools'),async()=>{reset();await window.NavPro.render(body,status);}] ,[L('赞赏','Support'),support]])tabs.append(button(name,fn));
