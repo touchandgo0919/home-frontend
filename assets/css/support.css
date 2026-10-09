@@ -1,0 +1,6 @@
+.support-card{text-align:center}
+.support-card h3{margin:4px 0 8px;font-size:18px}
+.support-card p{max-width:550px;margin:10px auto;color:var(--muted)}
+.support-image-link{display:block;width:min(100%,440px);margin:16px auto;border-radius:12px;overflow:hidden;line-height:0}
+.support-image-link img{display:block;width:100%;height:auto}
+.support-full-link{display:inline-block;margin:4px auto 8px;color:var(--accent);font-weight:700}

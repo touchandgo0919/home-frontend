@@ -3,7 +3,7 @@ import path from "node:path";
 import { createHash } from "node:crypto";
 
 const outDir = "dist";
-const copyItems = ["index.html", "admin", "assets", "help", "privacy"];
+const copyItems = ["index.html", "admin", "assets", "help", "privacy", "support"];
 
 fs.rmSync(outDir, { recursive: true, force: true });
 fs.mkdirSync(outDir, { recursive: true });

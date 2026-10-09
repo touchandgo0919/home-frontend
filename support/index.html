@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>赞赏支持 · 我的导航</title>
+  <style>
+    :root{color-scheme:light dark;font:15px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif}
+    body{margin:0;min-height:100vh;background:#101827;color:#f1f5ff}
+    main{max-width:680px;margin:0 auto;padding:24px 20px 50px;text-align:center}
+    nav{display:flex;justify-content:space-between;gap:16px;text-align:left}
+    a{color:#8cb2ff}
+    h1{margin:28px 0 4px;font-size:30px}
+    p{color:#bdc8db}
+    figure{margin:26px auto 12px;max-width:520px}
+    figure a{display:block;line-height:0;border-radius:14px;overflow:hidden;box-shadow:0 16px 50px #0005}
+    img{width:100%;height:auto}
+    figcaption{margin-top:12px;color:#bdc8db;font-size:13px}
+    .note{max-width:540px;margin:18px auto;padding:14px 18px;border:1px solid #34445f;border-radius:10px;background:#172337}
+    section[hidden]{display:none}
+  </style>
+</head>
+<body>
+  <main>
+    <nav><a href="/">← <span id="back">我的导航</span></a><span><a href="?lang=zh">中文</a> · <a href="?lang=en">English</a></span></nav>
+    <section id="zh" hidden>
+      <h1>赞赏支持</h1>
+      <p>如果「我的导航」对你有帮助，欢迎自愿使用微信赞赏码支持维护。</p>
+      <figure><a href="/assets/donation/wechat-appreciation.jpg?v=20261009" target="_blank" rel="noopener" aria-label="打开原尺寸微信赞赏码"><img src="/assets/donation/wechat-appreciation.jpg?v=20261009" width="1152" height="1152" alt="赵涛的微信赞赏码"></a><figcaption>电脑上用微信扫一扫；手机上点击图片打开原图并保存，再用微信识别。</figcaption></figure>
+      <p class="note">赞赏完全自愿，不会开通 Pro，也不属于购买服务。</p>
+    </section>
+    <section id="en" hidden>
+      <h1>Support My Navigation</h1>
+      <p>If My Navigation helps you, you can support its maintenance with this WeChat appreciation code.</p>
+      <figure><a href="/assets/donation/wechat-appreciation.jpg?v=20261009" target="_blank" rel="noopener" aria-label="Open the full-size WeChat appreciation code"><img src="/assets/donation/wechat-appreciation.jpg?v=20261009" width="1152" height="1152" alt="Zhao Tao’s WeChat appreciation code"></a><figcaption>Scan with WeChat on another device. On a phone, open and save the full-size image, then recognize it in WeChat.</figcaption></figure>
+      <p class="note">Contributions are voluntary. They do not activate Pro or purchase a service.</p>
+    </section>
+  </main>
+  <script>
+    const choice=new URLSearchParams(location.search).get('lang')||localStorage.getItem('nav-language');
+    const lang=choice==='en'||choice==='zh'?choice:/^zh/i.test(navigator.language)?'zh':'en';
+    document.getElementById(lang).hidden=false;
+    document.getElementById('back').textContent=lang==='zh'?'我的导航':'My Navigation';
+    document.documentElement.lang=lang==='zh'?'zh-CN':'en';
+    document.title=lang==='zh'?'赞赏支持 · 我的导航':'Support · My Navigation';
+  </script>
+</body>
+</html>
