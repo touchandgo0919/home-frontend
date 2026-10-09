@@ -16,7 +16,7 @@
  }
  document.addEventListener('DOMContentLoaded',()=>{
   document.title=translate(document.title);localize(document.body);
-  const select=document.getElementById('siteLanguage');if(select){select.value=language;select.onchange=()=>{localStorage.setItem('nav-language',select.value);location.reload();};}
+  const switcher=document.getElementById('siteLanguage');if(switcher){const next=language==='zh'?'en':'zh';switcher.textContent=next==='en'?'EN':'中';switcher.title=next==='en'?'Switch to English':'切换到中文';switcher.setAttribute('aria-label',switcher.title);switcher.onclick=()=>{localStorage.setItem('nav-language',next);location.reload();};}
   for(const a of document.querySelectorAll('a[href="/help/"],a[href="/privacy/"]'))a.href+=`?lang=${language}`;
   new MutationObserver(records=>{for(const record of records){if(record.type==='characterData')localize(record.target);else for(const node of record.addedNodes)localize(node);}}).observe(document.body,{subtree:true,childList:true,characterData:true});
  });

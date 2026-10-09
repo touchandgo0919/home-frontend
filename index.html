@@ -1102,7 +1102,6 @@
         display: none;
       }
 
-      .token-chip { display: none !important; }
 
       .theme-toggle {
         grid-template-columns: 40px;
@@ -1175,13 +1174,15 @@
           <input id="loginToken" type="password" autocomplete="current-password" placeholder="Token">
           <button type="submit">登录</button>
         </form>
+        <button class="token-chip" id="copyTokenBtn" type="button" aria-label="复制 Token" title="复制 Token">
+          <span id="tokenDisplay"></span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2"></rect><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path></svg>
+        </button>
         <button class="inline-action primary" id="editToggle" type="button">编辑</button>
-        <a class="admin-link" id="adminLink" href="/admin/" aria-label="进入管理后台">管理</a>
-        <span class="token-chip" id="tokenDisplay"></span>
-        <button class="inline-action" id="copyTokenBtn" type="button">复制 Token</button>
         <button class="inline-action" id="dataToolsBtn" type="button">数据与备份</button>
-        <select id="siteLanguage" class="language-select" aria-label="Language"><option value="zh">中文</option><option value="en">English</option></select>
+        <a class="admin-link" id="adminLink" href="/admin/" aria-label="进入管理后台">管理</a>
         <button class="inline-action danger" id="logoutBtn" type="button">登出</button>
+        <button id="siteLanguage" class="language-switch" type="button" aria-label="Switch to English" title="Switch to English">EN</button>
         <button class="theme-toggle" id="themeToggle" type="button" aria-label="切换深色浅色模式">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="4"></circle>
@@ -1640,9 +1641,10 @@
     function updateAuthUi() {
       loginForm.style.display = authState.authenticated ? "none" : "flex";
       searchInput.closest(".search").style.display = authState.authenticated ? "block" : "none";
-      tokenDisplay.style.display = authState.authenticated ? "inline-flex" : "none";
       tokenDisplay.textContent = authState.authenticated ? `欢迎，${authState.tenant?.name || "已登录"}` : "";
       copyTokenBtn.style.display = authState.authenticated ? "inline-flex" : "none";
+      copyTokenBtn.title = window.HomeI18n?.translate("复制 Token") || "复制 Token";
+      copyTokenBtn.setAttribute("aria-label", copyTokenBtn.title);
       editToggle.style.display = authState.authenticated ? "inline-flex" : "none";
       editToggle.textContent = authState.editMode ? "保存" : "编辑";
       adminLink.style.display = authState.authenticated && canManageSystem() ? "inline-flex" : "none";
