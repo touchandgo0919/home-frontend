@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { createHash } from "node:crypto";
 
 const outDir = "dist";
 const copyItems = ["index.html", "admin", "assets", "help", "privacy"];
@@ -17,6 +18,16 @@ for (const item of copyItems) {
 
   fs.cpSync(source, target, { recursive: true });
 }
+
+// The public server caches /assets/ for an hour. Give each referenced script
+// and stylesheet a URL tied to its contents so browsers fetch changed files.
+const htmlPath = path.join(outDir, "index.html");
+const html = fs.readFileSync(htmlPath, "utf8");
+fs.writeFileSync(htmlPath, html.replace(/(["'])\/(assets\/(?:css|js)\/[^"'?]+)\1/g, (match, quote, asset) => {
+  const content = fs.readFileSync(path.join(outDir, asset));
+  const version = createHash("sha256").update(content).digest("hex").slice(0, 12);
+  return `${quote}/${asset}?v=${version}${quote}`;
+}));
 
 if (process.env.HOME_API_BASE_URL) {
   const fallbackApiBaseUrl = process.env.HOME_API_BASE_URL;
