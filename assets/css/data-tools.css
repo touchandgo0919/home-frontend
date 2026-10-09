@@ -7,10 +7,8 @@
 .brand-search .search input{min-width:0;text-overflow:ellipsis}
 .actions{flex:0 0 auto;min-width:0;grid-column:auto;flex-wrap:nowrap;gap:8px;white-space:nowrap}
 .actions>*{flex-shrink:0}
-.actions .token-chip{width:clamp(168px,18vw,220px);max-width:220px;min-width:0;gap:7px;cursor:pointer;font-weight:600;justify-content:space-between}
-.token-chip:hover{border-color:var(--accent);color:var(--accent)}
+.actions .token-chip{width:clamp(168px,18vw,220px);max-width:220px;min-width:0;font-weight:600}
 .token-chip span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.token-chip svg{width:17px;height:17px;flex:none}
 .compact-action{display:none;align-items:center;justify-content:center;width:40px;height:40px;padding:0;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--muted);cursor:pointer}
 .compact-action svg{width:18px;height:18px;flex:none}
 .compact-action:hover{border-color:var(--accent);color:var(--accent)}

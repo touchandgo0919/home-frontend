@@ -1174,9 +1174,9 @@
           <input id="loginToken" type="password" autocomplete="current-password" placeholder="Token">
           <button type="submit">登录</button>
         </form>
-        <button class="token-chip" id="copyTokenBtn" type="button" aria-label="复制 Token" title="复制 Token">
-          <span id="tokenDisplay"></span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2"></rect><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path></svg>
+        <span class="token-chip" id="welcomeDisplay"><span id="tokenDisplay"></span></span>
+        <button class="compact-action" id="copyTokenBtn" type="button" aria-label="复制 Token" title="复制 Token">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2"></rect><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path></svg>
         </button>
         <button class="compact-action" id="dataToolsBtn" type="button" aria-label="数据与备份" title="数据与备份">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -1646,6 +1646,7 @@
       loginForm.style.display = authState.authenticated ? "none" : "flex";
       searchInput.closest(".search").style.display = authState.authenticated ? "block" : "none";
       tokenDisplay.textContent = authState.authenticated ? `欢迎，${authState.tenant?.name || "已登录"}` : "";
+      document.getElementById("welcomeDisplay").style.display = authState.authenticated ? "inline-flex" : "none";
       copyTokenBtn.style.display = authState.authenticated ? "inline-flex" : "none";
       copyTokenBtn.title = window.HomeI18n?.translate("复制 Token") || "复制 Token";
       copyTokenBtn.setAttribute("aria-label", copyTokenBtn.title);
