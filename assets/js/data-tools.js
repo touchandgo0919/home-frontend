@@ -67,7 +67,7 @@
    if(item.status==='success')row.append(button(L('预览恢复','Preview recovery'),async()=>importEditor(await api('backups/'+item.id),true)),button(L('下载','Download'),async()=>{download(JSON.stringify(await api('backups/'+item.id),null,2),'navigation-backup.json','application/json');status.textContent=L('备份已下载。','Backup downloaded.');}));body.append(row);
   }status.textContent='';
  }
- for(const [name,fn] of [[L('导出','Export'),exports],[L('导入','Import'),imports],[L('回收站','Trash'),trash],[L('自动备份','Backups'),backups]])tabs.append(button(name,fn));
+ for(const [name,fn] of [[L('导出','Export'),exports],[L('导入','Import'),imports],[L('回收站','Trash'),trash],[L('自动备份','Backups'),backups],[L('Pro 整理','Pro tools'),async()=>{reset();await window.NavPro.render(body,status);}]])tabs.append(button(name,fn));
  document.getElementById('dataToolsBtn').onclick=()=>{dialog.showModal();run(exports);};
  const undo=el('div',undefined,{className:'undo-notice',hidden:true});undo.setAttribute('role','status');document.body.append(undo);let undoTimer;
  window.NavTools={offerUndo(item){clearTimeout(undoTimer);undo.replaceChildren(el('span',L('已移入回收站。','Moved to Trash.')),button(L('撤销','Undo'),async()=>{await api('trash/restore',item);undo.hidden=true;await app().reload();}));undo.hidden=false;undoTimer=setTimeout(()=>undo.hidden=true,10000);}};
