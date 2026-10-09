@@ -12,7 +12,7 @@
   const visit=node=>{if(node.parentElement?.closest(skip))return;const text=node.nodeValue.trim();if(text){const next=translate(text);if(next!==text)node.nodeValue=node.nodeValue.replace(text,next);}};
   if(root.nodeType===Node.TEXT_NODE){visit(root);return;}if(root.nodeType!==Node.ELEMENT_NODE)return;
   const walk=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);while(walk.nextNode())visit(walk.currentNode);
-  const elements=[root,...root.querySelectorAll('[placeholder],[aria-label]')];for(const element of elements){if(element.closest(skip))continue;for(const attr of ['placeholder','aria-label']){const value=element.getAttribute(attr);if(value)element.setAttribute(attr,translate(value));}}
+  const elements=[root,...root.querySelectorAll('[placeholder],[aria-label],[title]')];for(const element of elements){if(element.closest(skip))continue;for(const attr of ['placeholder','aria-label','title']){const value=element.getAttribute(attr);if(value)element.setAttribute(attr,translate(value));}}
  }
  document.addEventListener('DOMContentLoaded',()=>{
   document.title=translate(document.title);localize(document.body);

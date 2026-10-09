@@ -11,7 +11,8 @@
 .token-chip:hover{border-color:var(--accent);color:var(--accent)}
 .token-chip span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .token-chip svg{width:17px;height:17px;flex:none}
-.compact-action{display:none;align-items:center;justify-content:center;height:36px;padding:0 11px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--muted);font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.compact-action{display:none;align-items:center;justify-content:center;width:40px;height:40px;padding:0;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--muted);cursor:pointer}
+.compact-action svg{width:18px;height:18px;flex:none}
 .compact-action:hover{border-color:var(--accent);color:var(--accent)}
 .actions .admin-link{height:36px;min-width:0;padding-inline:11px;font-size:13px}
 .language-switch{height:40px;min-width:42px;padding:0 9px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--muted);font:inherit;font-weight:760;cursor:pointer}
