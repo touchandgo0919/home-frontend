@@ -12,6 +12,7 @@
 .compact-action{display:none;align-items:center;justify-content:center;width:40px;height:40px;padding:0;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--muted);cursor:pointer}
 .compact-action svg{width:18px;height:18px;flex:none}
 .compact-action:hover{border-color:var(--accent);color:var(--accent)}
+.actions .extension-store-button{display:inline-flex}
 .actions .admin-link{height:36px;min-width:0;padding-inline:11px;font-size:13px}
 .language-switch{height:40px;min-width:42px;padding:0 9px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--muted);font:inherit;font-weight:760;cursor:pointer}
 .language-switch:hover{border-color:var(--accent);color:var(--accent)}
@@ -33,6 +34,7 @@
  .search input{padding-inline:34px 4px}
  .search input::placeholder{color:transparent}
  .actions{max-width:calc(100vw - 106px)}
+ .actions .token-chip{width:140px;max-width:140px}
  .actions .login-form input{width:110px}
 }
 .data-loading{display:flex;align-items:center;justify-content:center;gap:8px;margin:16px 0 0;color:var(--accent);font-size:13px;white-space:nowrap}
