@@ -1643,8 +1643,8 @@
       return body;
     }
 
-    function canManageSystem() {
-      return authState.role === "platform";
+    function canOpenAdmin() {
+      return authState.role === "platform" || authState.role === "admin";
     }
 
     function updateAuthUi() {
@@ -1657,7 +1657,7 @@
       copyTokenBtn.setAttribute("aria-label", copyTokenBtn.title);
       editToggle.style.display = authState.authenticated ? "inline-flex" : "none";
       editToggle.textContent = authState.editMode ? "保存" : "编辑";
-      adminLink.style.display = authState.authenticated && canManageSystem() ? "inline-flex" : "none";
+      adminLink.style.display = authState.authenticated && canOpenAdmin() ? "inline-flex" : "none";
       document.getElementById("dataToolsBtn").style.display = authState.authenticated ? "inline-flex" : "none";
       logoutBtn.style.display = authState.authenticated ? "inline-flex" : "none";
       document.body.dataset.editing = authState.authenticated && authState.editMode ? "true" : "false";

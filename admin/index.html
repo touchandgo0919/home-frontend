@@ -171,6 +171,7 @@
     .btn.danger { color: var(--danger); }
     .btn.ghost { background: transparent; }
     .btn.icon { width: 36px; padding: 0; }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
 
     .tab-panel {
       display: none;
@@ -299,6 +300,12 @@
     .status.ok { color: var(--ok); }
     .status.bad { color: var(--danger); }
     .hint { align-self: center; color: var(--muted); font-size: 12px; font-weight: 650; }
+    .panel-note { margin: 0; padding: 14px; color: var(--muted); line-height: 1.6; }
+    .token-created { padding: 14px; border-bottom: 1px solid var(--border); }
+    .token-created strong { display: block; margin-bottom: 10px; }
+    .token-created input { width: 100%; min-width: 0; border: 1px solid var(--border); border-radius: var(--radius); background: var(--input-bg); color: var(--text); padding: 0 10px; }
+    .token-status { min-height: 18px; margin: 0; padding: 0 14px 12px; color: var(--muted); }
+    .token-status.bad { color: var(--danger); }
 
     @media (max-width: 900px) {
       .settings-grid { grid-template-columns: 1fr; }
@@ -372,10 +379,28 @@
         </form>
         <div id="tenantList" class="list"></div>
       </section>
+      <section id="myTokenAdmin" class="panel" hidden>
+        <div class="panel-head">
+          <h2>我的账号与 Token</h2>
+          <span id="myTokenCount" class="count"></span>
+        </div>
+        <p class="panel-note">这里只管理当前账号的 Token。分组、书签及备份可在首页操作。</p>
+        <form id="tokenForm" class="form">
+          <label class="field span-6"><span>Token 名称</span><input name="name" required maxlength="100" placeholder="例如：我的浏览器"></label>
+          <label class="field span-3"><span>权限</span><select name="role"><option value="editor">编辑者</option><option value="admin">管理员</option></select></label>
+          <div class="form-actions span-3"><button class="btn primary" type="submit">创建 Token</button></div>
+        </form>
+        <div id="newTokenNotice" class="token-created" hidden>
+          <strong>新 Token 只显示这一次，请立即复制并妥善保存。</strong>
+          <div class="input-action"><input id="newTokenValue" aria-label="新 Token" readonly><button id="copyNewToken" class="btn" type="button">复制</button></div>
+        </div>
+        <p id="tokenStatus" class="token-status" role="status"></p>
+        <div id="myTokenList" class="list"></div>
+      </section>
       <section id="permissionEmpty" class="panel">
         <div class="empty">
-          <strong>需要平台管理员 Token</strong>
-          当前账号只能管理自己的导航，不能管理所有租户。点击右上角“重新登录”后输入平台管理员 Token。
+          <strong>需要管理员 Token</strong>
+          当前 Token 只有编辑权限。请使用管理员 Token 登录。
         </div>
       </section>
     </div>
@@ -383,13 +408,14 @@
 
   <script src="/config.js"></script>
   <script>
-    const state = { tenants: [], role: "", tenant: null };
+    const state = { tenants: [], tokens: [], role: "", tenant: null };
     const tokenInput = document.getElementById("tokenInput");
     const loginBtn = document.getElementById("loginBtn");
     const logoutBtn = document.getElementById("logoutBtn");
     const tokenDisplay = document.getElementById("tokenDisplay");
     const statusEl = document.getElementById("status");
     const tenantForm = document.getElementById("tenantForm");
+    const tokenForm = document.getElementById("tokenForm");
     const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
     const savedTheme = localStorage.getItem("nav-theme");
     const tokenExpiryKey = "nav-token-expires-at";
@@ -529,9 +555,15 @@
       setStatus("加载中");
       if (state.role === "platform") {
         await loadTenants();
+      } else if (state.role === "admin") {
+        await loadTokens();
       }
       render();
       setStatus("已同步", "ok");
+    }
+
+    function roleStatus() {
+      return state.role === "platform" ? "平台管理员已登录" : state.role === "admin" ? "账号管理员已登录" : "编辑者已登录";
     }
 
     async function login() {
@@ -549,7 +581,7 @@
       state.role = body.role;
       state.tenant = body.tenant;
       await load();
-      setStatus(body.role === "platform" ? "平台管理员已登录" : "租户已登录", "ok");
+      setStatus(roleStatus(), "ok");
       finishInitialLoad();
     }
 
@@ -563,7 +595,7 @@
       state.role = body.role;
       state.tenant = body.tenant;
       await load();
-      setStatus(body.role === "platform" ? "平台管理员已登录" : "租户已登录", "ok");
+      setStatus(roleStatus(), "ok");
       finishInitialLoad();
     }
 
@@ -572,10 +604,16 @@
       state.tenants = body.data || [];
     }
 
+    async function loadTokens() {
+      const body = await api("tokens");
+      state.tokens = body.data || [];
+    }
+
     function render() {
       renderToolbar();
       renderTabs();
       renderTenantAdmin();
+      renderMyTokenAdmin();
     }
 
     function renderToolbar() {
@@ -636,7 +674,7 @@
       const emptyPanel = document.getElementById("permissionEmpty");
       const canManageTenant = state.role === "platform";
       panel.style.display = canManageTenant ? "" : "none";
-      emptyPanel.style.display = state.role && !canManageTenant ? "" : "none";
+      emptyPanel.style.display = state.role === "editor" ? "" : "none";
       if (!canManageTenant) return;
 
       document.getElementById("tenantCount").textContent = `${state.tenants.length} 个租户`;
@@ -692,6 +730,64 @@
       });
     }
 
+    function setTokenStatus(message, bad = false) {
+      const element = document.getElementById("tokenStatus");
+      element.textContent = message;
+      element.classList.toggle("bad", bad);
+    }
+
+    function renderMyTokenAdmin() {
+      const panel = document.getElementById("myTokenAdmin");
+      panel.hidden = state.role !== "admin";
+      if (panel.hidden) return;
+      document.getElementById("myTokenCount").textContent = `${state.tokens.length} 个 Token`;
+      const root = document.getElementById("myTokenList");
+      root.replaceChildren();
+      const adminCount = state.tokens.filter((item) => item.role === "admin").length;
+      for (const item of state.tokens) {
+        const row = document.createElement("div");
+        row.className = "row";
+        const marker = document.createElement("span");
+        marker.className = "handle";
+        marker.textContent = "#";
+        const details = document.createElement("span");
+        const name = document.createElement("span");
+        name.className = "title";
+        name.textContent = item.name;
+        const role = document.createElement("span");
+        role.className = "badge";
+        role.textContent = item.role === "admin" ? "管理员" : "编辑者";
+        details.append(name, role);
+        const revoke = document.createElement("button");
+        revoke.className = "btn danger";
+        revoke.type = "button";
+        revoke.textContent = "撤销";
+        revoke.disabled = item.role === "admin" && adminCount <= 1;
+        if (revoke.disabled) revoke.title = "至少保留一个管理员 Token";
+        revoke.addEventListener("click", async () => {
+          if (!window.confirm(`撤销「${item.name}」的 Token？使用它登录的设备将无法继续访问。`)) return;
+          revoke.disabled = true;
+          try {
+            await api(`tokens/${item.id}`, { method: "DELETE" });
+            await loadTokens();
+            renderMyTokenAdmin();
+            setTokenStatus("Token 已撤销。");
+          } catch (error) {
+            revoke.disabled = false;
+            setTokenStatus(error.message || "撤销失败。", true);
+          }
+        });
+        row.append(marker, details, revoke);
+        root.append(row);
+      }
+      if (!state.tokens.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.textContent = "暂无 Token。";
+        root.append(empty);
+      }
+    }
+
     tenantForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const body = {
@@ -708,6 +804,36 @@
       await api(tenantId ? `tenants/${tenantId}` : "tenants", { method: tenantId ? "PUT" : "POST", body: JSON.stringify(body) });
       resetTenantForm();
       await load();
+    });
+
+    tokenForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const submit = tokenForm.querySelector('button[type="submit"]');
+      const value = randomToken();
+      submit.disabled = true;
+      setTokenStatus("正在创建…");
+      try {
+        await api("tokens", { method: "POST", body: JSON.stringify({ name: tokenForm.elements.name.value.trim(), role: tokenForm.elements.role.value, token: value }) });
+        await loadTokens();
+        renderMyTokenAdmin();
+        document.getElementById("newTokenValue").value = value;
+        document.getElementById("newTokenNotice").hidden = false;
+        tokenForm.reset();
+        setTokenStatus("Token 已创建，请立即复制保存。");
+      } catch (error) {
+        setTokenStatus(error.message || "创建失败。", true);
+      } finally {
+        submit.disabled = false;
+      }
+    });
+
+    document.getElementById("copyNewToken").addEventListener("click", async () => {
+      try {
+        await copyText(document.getElementById("newTokenValue").value);
+        setTokenStatus("新 Token 已复制，请妥善保存。");
+      } catch (error) {
+        setTokenStatus(error.message || "复制失败。", true);
+      }
     });
 
     loginBtn.addEventListener("click", () => login().catch((error) => {
