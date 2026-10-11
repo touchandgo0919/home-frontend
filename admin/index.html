@@ -299,7 +299,6 @@
     .status { min-width: 180px; color: var(--muted); font-size: 12px; text-align: right; }
     .status.ok { color: var(--ok); }
     .status.bad { color: var(--danger); }
-    .hint { align-self: center; color: var(--muted); font-size: 12px; font-weight: 650; }
     .panel-note { margin: 0; padding: 14px; color: var(--muted); line-height: 1.6; }
     .token-created { padding: 14px; border-bottom: 1px solid var(--border); }
     .token-created strong { display: block; margin-bottom: 10px; }
@@ -358,21 +357,20 @@
         </div>
         <form id="tenantForm" class="form">
           <input type="hidden" name="id">
-          <label class="field span-4"><span>标识</span><input name="slug" required placeholder="zhaotao"></label>
-          <label class="field span-4"><span>名称</span><input name="name" required placeholder="zhaotao"></label>
-          <label class="field span-4">
+          <input type="hidden" name="slug">
+          <label class="field span-6"><span>名称</span><input name="name" required placeholder="例如：我的导航"></label>
+          <label class="field span-6">
             <span>令牌</span>
             <input name="admin_token" placeholder="编辑时留空则不修改">
           </label>
-          <label class="field span-4">
+          <label class="field span-6">
             <span>角色</span>
             <select name="token_role">
-              <option value="admin">管理员</option>
               <option value="editor">编辑者</option>
+              <option value="admin">管理员</option>
             </select>
           </label>
-          <div class="span-4 hint">新增租户时会同时创建这枚令牌；编辑租户时填入新令牌即可追加。</div>
-          <div class="form-actions span-4">
+          <div class="form-actions span-6">
             <button id="resetTenantBtn" class="btn ghost" type="button">新建</button>
             <button class="btn primary" type="submit">保存租户</button>
           </div>
@@ -664,8 +662,21 @@
     function resetTenantForm() {
       tenantForm.reset();
       tenantForm.elements.id.value = "";
+      tenantForm.elements.slug.value = "";
       tenantForm.elements.admin_token.value = randomToken();
-      tenantForm.elements.token_role.value = "admin";
+      tenantForm.elements.token_role.value = "editor";
+    }
+
+    function newTenantSlug(name) {
+      const candidate = name.trim().toLowerCase().normalize("NFKD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 62)
+        .replace(/-+$/g, "");
+      return candidate.length >= 2 && !state.tenants.some((tenant) => tenant.slug === candidate)
+        ? candidate
+        : `user-${randomToken().toLowerCase()}`;
     }
 
     function fillTenantForm(tenant) {
@@ -700,7 +711,7 @@
             <span class="title">${escapeHtml(tenant.name)}</span>
             <span class="badge">${roleLabel}</span>
             ${isCurrentTenant ? '<span class="badge">当前登录租户</span>' : ""}
-            <span class="sub">${escapeHtml(tenant.slug)}</span>
+            ${tenant.slug !== tenant.name ? `<span class="sub">${escapeHtml(tenant.slug)}</span>` : ""}
           </span>
           <span class="row-actions">
             <button class="btn icon" type="button" data-action="copy" aria-label="复制租户令牌">${copyIcon()}</button>
@@ -797,13 +808,14 @@
 
     tenantForm.addEventListener("submit", async (event) => {
       event.preventDefault();
+      const tenantId = tenantForm.elements.id.value;
+      const name = tenantForm.elements.name.value.trim();
       const body = {
-        slug: tenantForm.elements.slug.value,
-        name: tenantForm.elements.name.value,
+        slug: tenantId ? tenantForm.elements.slug.value : newTenantSlug(name),
+        name,
         admin_token: tenantForm.elements.admin_token.value,
         token_role: tenantForm.elements.token_role.value,
       };
-      const tenantId = tenantForm.elements.id.value;
       if (!tenantId && !body.admin_token.trim()) {
         setStatus("新租户必须填写租户令牌", "bad");
         return;
