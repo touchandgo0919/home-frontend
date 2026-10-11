@@ -509,7 +509,7 @@
 
     const apiBaseUrl = String(window.HOME_CONFIG?.API_BASE_URL || "").replace(/\/+$/, "");
     const apiUrl = (path) => `${apiBaseUrl}/api/${String(path).replace(/^\/+/, "")}`;
-    const requestTimeoutMs = 8000;
+    const requestTimeoutMs = 20000;
 
     async function fetchWithTimeout(url, options = {}) {
       const controller = new AbortController();
@@ -590,13 +590,20 @@
         finishInitialLoad();
         return;
       }
-      setStatus("恢复会话");
-      const body = await api("auth/session");
-      state.role = body.role;
-      state.tenant = body.tenant;
-      await load();
-      setStatus(roleStatus(), "ok");
-      finishInitialLoad();
+      setStatus("正在恢复登录…");
+      loginBtn.disabled = true;
+      const revealTimer = window.setTimeout(finishInitialLoad, 2500);
+      try {
+        const body = await api("auth/session");
+        state.role = body.role;
+        state.tenant = body.tenant;
+        await load();
+        setStatus(roleStatus(), "ok");
+      } finally {
+        window.clearTimeout(revealTimer);
+        loginBtn.disabled = false;
+        finishInitialLoad();
+      }
     }
 
     async function loadTenants() {
@@ -620,7 +627,7 @@
       const loggedIn = Boolean(state.role);
       tokenInput.style.display = loggedIn ? "none" : "";
       loginBtn.style.display = loggedIn ? "none" : "";
-      logoutBtn.style.display = loggedIn ? "" : "none";
+      logoutBtn.style.display = loggedIn || Boolean(visibleToken()) ? "" : "none";
       statusEl.style.display = loggedIn ? "none" : "";
       tokenDisplay.style.display = loggedIn ? "inline-flex" : "none";
       tokenDisplay.textContent = loggedIn ? `欢迎，${state.tenant?.name || "已登录"}` : "";
@@ -840,8 +847,7 @@
       finishInitialLoad();
       setStatus(error.message, "bad");
     }));
-    logoutBtn.addEventListener("click", async () => {
-      await fetch(apiUrl("auth/logout"), { method: "POST" });
+    logoutBtn.addEventListener("click", () => {
       clearVisibleToken();
       window.location.href = "/admin/";
     });
