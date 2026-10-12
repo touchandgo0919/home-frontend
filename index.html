@@ -256,27 +256,6 @@
       transform: translateY(-1px);
     }
 
-    .admin-link {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      height: 40px;
-      min-width: 72px;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      background: var(--surface);
-      color: var(--muted);
-      padding: 0 12px;
-      font-weight: 760;
-      transition: border-color 160ms ease, color 160ms ease, transform 160ms ease;
-    }
-
-    .admin-link:hover {
-      border-color: color-mix(in srgb, var(--accent) 54%, var(--border));
-      color: var(--accent);
-      transform: translateY(-1px);
-    }
-
     .login-form {
       display: flex;
       align-items: center;
@@ -1188,7 +1167,9 @@
         <a class="compact-action extension-store-button" href="https://chromewebstore.google.com/detail/mofnenkcgjlicidebgegghfohpmfefil" target="_blank" rel="noopener noreferrer" aria-label="安装 Chrome 插件" title="安装 Chrome 插件">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="8" width="16" height="13" rx="2"></rect><path d="M8 8V6a4 4 0 0 1 8 0v2"></path><circle cx="12" cy="14.5" r="2.5"></circle></svg>
         </a>
-        <a class="admin-link" id="adminLink" href="/admin/" aria-label="进入管理后台">管理</a>
+        <a class="compact-action" id="adminLink" href="/admin/" aria-label="进入管理后台" title="管理">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5 14 5l2.4-.4 1.1 2.2L20 8l-.3 2.5 1.3 1.5-1.3 1.5L20 16l-2.5 1.2-1.1 2.2L14 19l-2 1.5L10 19l-2.4.4-1.1-2.2L4 16l.3-2.5L3 12l1.3-1.5L4 8l2.5-1.2 1.1-2.2L10 5z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+        </a>
         <button class="inline-action primary" id="editToggle" type="button">编辑</button>
         <button class="inline-action danger" id="logoutBtn" type="button">登出</button>
         <button id="siteLanguage" class="language-switch" type="button" aria-label="Switch to English" title="Switch to English">EN</button>

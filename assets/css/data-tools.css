@@ -13,7 +13,6 @@
 .compact-action svg{width:18px;height:18px;flex:none}
 .compact-action:hover{border-color:var(--accent);color:var(--accent)}
 .actions .extension-store-button{display:inline-flex}
-.actions .admin-link{height:36px;min-width:0;padding-inline:11px;font-size:13px}
 .language-switch{height:40px;min-width:42px;padding:0 9px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--muted);font:inherit;font-weight:760;cursor:pointer}
 .language-switch:hover{border-color:var(--accent);color:var(--accent)}
 .help-links{display:inline-flex;gap:12px;margin-right:15px}
